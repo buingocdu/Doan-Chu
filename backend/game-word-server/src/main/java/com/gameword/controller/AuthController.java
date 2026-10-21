@@ -1,0 +1,30 @@
+package com.gameword.controller;
+
+import com.gameword.dto.AuthResponse;
+import com.gameword.dto.LoginRequest;
+import com.gameword.dto.RegisterRequest;
+import com.gameword.service.UserService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "*")
+public class AuthController {
+
+    private final UserService userService;
+
+    public AuthController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(userService.register(request));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(userService.login(request));
+    }
+}
