@@ -1,83 +1,97 @@
-# Game Do An Chu (Word Guessing Game)
+# Game Đoán Chữ (Word Guessing Game)
 
-## Cau truc du an
+Trò chơi đoán từ ghép tiếng Việt (không dấu) trên web: hệ thống chọn ngẫu nhiên một từ ghép, người chơi có tối đa 10 lượt đoán và nhận phản hồi màu cho từng ký tự.
+
+> Trạng thái: đang phát triển (Phase 1). Một số chức năng còn lỗi đã biết — xem [Báo cáo phân tích](docs/analysis/project-analysis-report.md).
+
+## Cấu trúc repository
+
 ```
-D:\Working\Game word\
-├── backend\game-word-server\        # Java Spring Boot Backend
-├── frontend\game-word-web\          # React.js Frontend (Web)
-└── README.md
-```
-
-## Tech Stack
-- **Backend:** Java 17+, Spring Boot 3.2.5, Spring Data JPA, PostgreSQL, JWT, Lombok
-- **Frontend:** React 18, Vite, Axios, React Router
-- **Database:** PostgreSQL
-- **Mobile (Phase 2):** Chua phat trien
-
-## Cau hinh Database (PostgreSQL)
-Tao database va user:
-```sql
-CREATE DATABASE game_word_db;
-CREATE USER postgres WITH PASSWORD 'postgres';
-GRANT ALL PRIVILEGES ON DATABASE game_word_db TO postgres;
+.
+├── backend/game-word-server/   # Spring Boot REST API
+├── frontend/game-word-web/     # React + Vite SPA (JavaScript)
+├── docs/                       # Tài liệu dự án
+├── docker-compose.yml          # PostgreSQL + backend + frontend (Nginx)
+├── .env.example                # Mẫu biến môi trường cho Docker Compose
+└── start.bat                   # Script chạy local trên Windows (cần sửa đường dẫn)
 ```
 
-Cap nhat `backend\game-word-server\src\main\resources\application.properties` neu can:
-```
-spring.datasource.url=jdbc:postgresql://localhost:5432/game_word_db
-spring.datasource.username=postgres
-spring.datasource.password=postgres
+## Công nghệ
+
+| Thành phần | Công nghệ |
+|-----------|-----------|
+| Backend | Java 17, Spring Boot 3.2.5, Spring Data JPA, Spring Security + JWT (jjwt 0.12.3), Liquibase, Lombok |
+| Frontend | React 18, React Router 6, Axios, Vite 5 |
+| Database | PostgreSQL 15 |
+| Triển khai | Docker, Docker Compose, Nginx |
+
+## Bắt đầu nhanh
+
+### Docker Compose
+
+```bash
+cp .env.example .env    # đặt POSTGRES_PASSWORD và JWT_SECRET (>= 32 ký tự)
+docker compose up -d --build
 ```
 
-## Chay Backend
-Yeu cau: Maven va Java 17+
+Truy cập `http://localhost/`. API được Nginx proxy tại `/api/`.
 
-```cmd
-cd D:\Working\Game word\backend\game-word-server
+### Chạy local
+
+Yêu cầu: JDK 17, Maven, Node.js 20, PostgreSQL với database `game_word_db`.
+
+```bash
+# Backend — http://localhost:8080
+cd backend/game-word-server
 mvn spring-boot:run
-```
-Hoac chay JAR:
-```cmd
-mvn -DskipTests package
-java -jar target\game-word-server-1.0.0.jar
-```
 
-Backend chay tai: `http://localhost:8080`
-
-## Chay Frontend (Web)
-Yeu cau: Node.js
-
-```cmd
-cd D:\Working\Game word\frontend\game-word-web
+# Frontend — http://localhost:3000 (proxy /api tới :8080)
+cd frontend/game-word-web
 npm install
 npm run dev
 ```
 
-Frontend chay tai: `http://localhost:3000`
+Thông tin kết nối DB local nằm trong `backend/game-word-server/src/main/resources/application.properties`. Không commit mật khẩu thật. Chi tiết: [Runbook triển khai](docs/deployment/deployment-runbook.md).
 
-## API Endpoints
-| Method | Endpoint | Mo ta |
-|--------|----------|-------|
-| POST | /api/auth/register | Dang ky nguoi dung |
-| POST | /api/auth/login | Dang nhap, tra ve JWT token |
-| GET | /api/words/random | Lay tu ngau nhien (params: excludedIds) |
-| GET | /api/words/random/{level} | Lay tu theo cap do |
-| POST | /api/game/start | Bat dau tran dau moi |
-| POST | /api/game/guess | Gui luot doan |
-| GET | /api/history/user/{id} | Lich su choi cua nguoi dung |
-| GET | /api/leaderboard | Bang xep hang |
+## Luật chơi (hiện tại)
 
-## Luat choi (Phase 1)
-- Backend chon 1 tu ghep (2 tu) tu kho tu dien, tra ve so ki tu
-- Nguoi choi co 10 lan doan (co the config qua `game.guess.max-attempts`)
-- Mau sac feedback:
-  - Xanh la: chu o dung vi tri
-  - Vang: chu co trong tu nhung sai vi tri
-  - Xanh duong: nguyen am dung nhung sai dau (a,e,i,o,u)
-  - Den: chu khong co trong tu
-- Sau moi luot, luu vao lich de khong trung tu khi random man tiep
-- Dang nhap duoc xep hang, cong diem 10-100 tuong ung so lan doan
+- Mỗi ván có một từ ghép (ví dụ `MAYTINH` = `MAY` + `TINH`), người chơi biết độ dài từ.
+- Tối đa 10 lượt đoán.
+- Màu phản hồi: **xanh lá** — đúng vị trí; **vàng** — có trong từ nhưng sai vị trí; **xanh dương** — nguyên âm đúng gốc nhưng sai dấu; **đen** — không có trong từ.
+- Đoán đúng ở lượt *n* được tính điểm từ 100 (lượt 1) giảm dần, tối thiểu 10.
 
-## Mở rộng (Phase 2)
-- App Mobile (React Native / Flutter)
-- He thong login, xep hang, luu diem tong ket
+Chi tiết cài đặt và giới hạn: [Kiến trúc §7](docs/architecture/architecture-overview.md#7-luật-chơi-được-cài-đặt--current).
+
+## API
+
+| Method | Endpoint | Auth | Mô tả |
+|--------|----------|------|-------|
+| POST | `/api/auth/register` | — | Đăng ký |
+| POST | `/api/auth/login` | — | Đăng nhập, trả JWT |
+| GET | `/api/words` | — | Danh sách từ |
+| GET | `/api/words/random` | — | Từ ngẫu nhiên (`excludedIds`) |
+| GET | `/api/words/random/{level}` | — | Từ ngẫu nhiên theo cấp độ |
+| POST | `/api/game/start` | JWT | Bắt đầu ván |
+| POST | `/api/game/guess` | JWT | Gửi lượt đoán |
+| GET | `/api/history/user/{userId}` | JWT | Lịch sử chơi |
+| GET | `/api/history/correct/user/{userId}` | JWT | Các lượt đoán đúng |
+| GET | `/api/leaderboard` | — | Bảng xếp hạng |
+
+Request/response chi tiết: [Tham chiếu API](docs/api/api-reference.md).
+
+## Tài liệu
+
+Danh mục đầy đủ: [docs/documentation-catalog.md](docs/documentation-catalog.md)
+
+| Tài liệu | Nội dung |
+|----------|----------|
+| [Kiến trúc tổng thể](docs/architecture/architecture-overview.md) | Module, luồng xử lý, luật chơi |
+| [Tham chiếu API](docs/api/api-reference.md) | Endpoint, DTO, mã lỗi |
+| [Thiết kế CSDL](docs/database/database-design.md) | ERD, data dictionary, migration |
+| [Runbook triển khai](docs/deployment/deployment-runbook.md) | Biến môi trường, chạy local/Docker |
+| [Báo cáo phân tích](docs/analysis/project-analysis-report.md) | Lỗi và rủi ro đã biết |
+
+## Lộ trình (Phase 2)
+
+- Ứng dụng mobile (React Native hoặc Flutter) — chưa bắt đầu.
+- Hoàn thiện đăng nhập, xếp hạng và lưu điểm tổng kết.
