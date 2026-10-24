@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Game Đoán Chữ</string>
+    <string name="title_activity_main">Game Đoán Chữ</string>
+    <string name="package_name">com.gameword.app</string>
+    <string name="custom_url_scheme">com.gameword.app</string>
+</resources>

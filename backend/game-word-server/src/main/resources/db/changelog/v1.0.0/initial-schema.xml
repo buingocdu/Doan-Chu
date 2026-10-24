@@ -20,17 +20,14 @@
             <column name="email" type="VARCHAR(255)">
                 <constraints nullable="false" unique="true" uniqueConstraintName="uk_users_email"/>
             </column>
-            <column name="total_score" type="INTEGER">
+            <column name="total_score" type="INTEGER" defaultValueNumeric="0">
                 <constraints nullable="true"/>
-                <valueDefault numeric="0"/>
             </column>
-            <column name="games_played" type="INTEGER">
+            <column name="games_played" type="INTEGER" defaultValueNumeric="0">
                 <constraints nullable="true"/>
-                <valueDefault numeric="0"/>
             </column>
-            <column name="games_won" type="INTEGER">
+            <column name="games_won" type="INTEGER" defaultValueNumeric="0">
                 <constraints nullable="true"/>
-                <valueDefault numeric="0"/>
             </column>
             <column name="created_at" type="TIMESTAMP">
                 <constraints nullable="true"/>
@@ -56,9 +53,8 @@
             <column name="level" type="INTEGER">
                 <constraints nullable="false"/>
             </column>
-            <column name="active" type="BOOLEAN">
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
                 <constraints nullable="false"/>
-                <valueDefault valueBoolean="true"/>
             </column>
             <column name="created_at" type="TIMESTAMP">
                 <constraints nullable="true"/>

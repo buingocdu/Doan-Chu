@@ -22,6 +22,9 @@ public class GameHistory {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "game_id")
+    private Long gameId;
+
     @Column(name = "word_id", nullable = false)
     private Long wordId;
 

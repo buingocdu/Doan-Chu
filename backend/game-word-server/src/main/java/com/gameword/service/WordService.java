@@ -20,14 +20,15 @@ public class WordService {
     }
 
     public WordResponse getRandomWord(List<Long> excludedIds) {
-        Optional<Word> word = wordRepository.findRandomNotIn(excludedIds);
+        Optional<Word> word = wordRepository.findRandomNotIn(nonEmpty(excludedIds));
         if (word.isEmpty()) {
-            word = wordRepository.findRandomNotIn(List.of());
+            word = wordRepository.findRandomNotIn(nonEmpty(List.of()));
         }
         Word w = word.orElseThrow(() -> new RuntimeException("No words available"));
         return WordResponse.builder()
             .id(w.getId())
             .value(w.getValue())
+            .phrase(w.getPhrase())
             .wordLength(w.getValue().length())
             .level(w.getLevel())
             .maxAttempts(null)
@@ -35,26 +36,27 @@ public class WordService {
     }
 
     public WordResponse getRandomWordByLevel(Integer level, List<Long> excludedIds) {
-        Optional<Word> word = wordRepository.findRandomByLevelNotIn(level, excludedIds);
+        Optional<Word> word = wordRepository.findRandomByLevelNotIn(level, nonEmpty(excludedIds));
         if (word.isEmpty()) {
-            word = wordRepository.findRandomByLevelNotIn(level, List.of());
+            word = wordRepository.findRandomByLevelNotIn(level, nonEmpty(List.of()));
         }
         Word w = word.orElseThrow(() -> new RuntimeException("No words available for level " + level));
         return WordResponse.builder()
             .id(w.getId())
             .value(w.getValue())
+            .phrase(w.getPhrase())
             .wordLength(w.getValue().length())
             .level(w.getLevel())
             .maxAttempts(null)
             .build();
     }
 
-    public List<Word> getAllActiveWords() {
-        return wordRepository.findByActiveTrueOrderByLevelAscIdAsc();
-    }
-
     public Word getWord(Long id) {
         return wordRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Word not found"));
+    }
+
+    private List<Long> nonEmpty(List<Long> ids) {
+        return ids == null || ids.isEmpty() ? List.of(-1L) : ids;
     }
 }

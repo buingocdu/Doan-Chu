@@ -28,16 +28,4 @@ public class WordController {
                                                       @RequestParam(required = false) List<Long> excludedIds) {
         return ResponseEntity.ok(wordService.getRandomWordByLevel(level, excludedIds != null ? excludedIds : List.of()));
     }
-
-    @GetMapping
-    public ResponseEntity<List<WordResponse>> all() {
-        return ResponseEntity.ok(wordService.getAllActiveWords().stream()
-            .map(w -> WordResponse.builder()
-                .id(w.getId())
-                .value(w.getValue())
-                .wordLength(w.getValue().length())
-                .level(w.getLevel())
-                .build())
-            .collect(java.util.stream.Collectors.toList()));
-    }
 }

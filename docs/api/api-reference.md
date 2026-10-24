@@ -2,7 +2,7 @@
 title: "Tham chiếu REST API"
 document_id: "DOC-002"
 status: "Draft"
-version: "0.1"
+version: "0.2"
 owner_role: "Backend Lead"
 last_updated: "2026-10-24"
 related_documents: ["DOC-001", "DOC-003", "DOC-005"]
@@ -20,15 +20,14 @@ related_documents: ["DOC-001", "DOC-003", "DOC-005"]
 ## 2. Xác thực
 
 - Header: `Authorization: Bearer <token>` — token lấy từ `/auth/login` hoặc `/auth/register`.
-- Subject của token là **email** người dùng (`UserService` gọi `jwtUtil.generateToken(user.getEmail())`).
-- Không có phân quyền theo vai trò (authorities rỗng).
+- Subject của token là **username** (từ 2026-10-24; trước đó là email gây lỗi R-01).
+- Token sai/hết hạn không làm request lỗi: `JwtAuthFilter` bỏ qua và xử lý như khách.
+- Không có phân quyền theo vai trò (authorities rỗng). Người chơi luôn được xác định từ token, không nhận `userId` từ client.
 
 | Nhóm | Quy tắc (`SecurityConfig`) |
 |------|---------------------------|
-| `/api/auth/**`, `/api/words/**`, `/api/leaderboard/**` | Public |
-| `/api/game/**`, `/api/history/**`, còn lại | Cần JWT hợp lệ |
-
-> ⚠ Đã xác định qua phân tích tĩnh: endpoint cần xác thực hiện không dùng được với token phát hành (R-01, [DOC-005](../analysis/project-analysis-report.md)).
+| `/api/auth/**`, `/api/words/**`, `/api/leaderboard/**`, `/api/game/**` | Public (game: có token thì được cộng điểm, không có token = khách) |
+| `/api/history/**`, còn lại | Cần JWT hợp lệ |
 
 ## 3. Tổng hợp endpoint
 
@@ -36,11 +35,11 @@ related_documents: ["DOC-001", "DOC-003", "DOC-005"]
 |--------|------|------|-------------------|-------|
 | POST | `/api/auth/register` | Public | `AuthController.register` | Đăng ký, trả JWT |
 | POST | `/api/auth/login` | Public | `AuthController.login` | Đăng nhập, trả JWT |
-| GET | `/api/words` | Public | `WordController.all` | Danh sách từ đang active |
 | GET | `/api/words/random` | Public | `WordController.random` | Từ ngẫu nhiên |
 | GET | `/api/words/random/{level}` | Public | `WordController.randomByLevel` | Từ ngẫu nhiên theo cấp độ |
-| POST | `/api/game/start` | JWT | `GameController.start` | Bắt đầu ván |
-| POST | `/api/game/guess` | JWT | `GameController.guess` | Gửi lượt đoán |
+| POST | `/api/game/start` | Public / JWT | `GameController.start` | Bắt đầu ván |
+| GET | `/api/game/current` | Public / JWT | `GameController.current` | Ván đang chơi dở (khôi phục sau khi tải lại trang) |
+| POST | `/api/game/guess` | Public / JWT | `GameController.guess` | Gửi lượt đoán |
 | GET | `/api/history/user/{userId}` | JWT | `HistoryController.history` | Lịch sử của người dùng |
 | GET | `/api/history/correct/user/{userId}` | JWT | `HistoryController.correct` | Các lượt đoán đúng |
 | GET | `/api/leaderboard` | Public | `LeaderboardController.leaderboard` | Bảng xếp hạng |
@@ -78,48 +77,79 @@ Response 200: `AuthResponse` như trên. Lỗi 400 `"Invalid credentials"` (ném
 Response 200 (`WordResponse`):
 
 ```json
-{ "id": 3, "value": "LANHDAU", "wordLength": 7, "level": 2, "maxAttempts": null }
+{ "id": 6, "value": "THUVIEN", "phrase": "thư viện", "wordLength": 7, "level": 3, "maxAttempts": null }
 ```
 
 > ⚠ Response trả về cả đáp án (`value`) cho client (R-03). Nếu tất cả từ bị loại trừ, server bỏ qua `excludedIds` và chọn lại trong toàn bộ kho.
 
-### 4.4 `GET /api/words`
+### 4.4 ~~`GET /api/words`~~ (đã gỡ 2026-10-24)
 
-Response 200: mảng `WordResponse` (gồm `value`), sắp xếp theo `level`, `id`.
+Endpoint trả toàn bộ danh sách từ (~4 MB với ~45.000 từ) đã bị gỡ vì ứng dụng không sử dụng và làm lộ đáp án.
 
 ### 4.5 `POST /api/game/start`
 
-Tham số query: `userId` (Long, không bắt buộc), `excludedIds` (danh sách Long, không bắt buộc). Không có body.
+Tham số query: `excludedIds` (danh sách Long, lặp lại `excludedIds=1&excludedIds=2`, không bắt buộc). Không có body. Server tạo bản ghi bắt đầu ván và trả `gameId`.
 
 Response 200 (`GuessResponse`):
 
 ```json
 {
-  "wordId": 3, "wordLength": 7, "guess": "", "attempt": 0, "maxAttempts": 10,
+  "gameId": 12, "wordId": 3, "wordLength": 7, "partLengths": [4, 3], "guess": "", "attempt": 0, "maxAttempts": 10,
   "correct": false, "gameOver": false, "cells": [], "score": null,
-  "message": "Bat dau choi. Ban co 10 lan doan."
+  "message": "Bat dau choi. Ban co 10 lan doan.", "answer": null
 }
 ```
+
+### 4.5a `GET /api/game/current`
+
+Trả về ván đang chơi dở để frontend khôi phục sau khi tải lại trang.
+
+| Người gọi | Ván được chọn |
+|-----------|---------------|
+| Có JWT | Ván có hoạt động gần nhất (bắt đầu hoặc đoán) của người dùng; tham số `gameId` bị bỏ qua. Hoạt động trên mọi thiết bị/trình duyệt |
+| Khách | Ván có `gameId` (query) do frontend lưu ở `localStorage` (`gw.currentGame`), chỉ khi đó là ván của khách (`user_id` null) |
+
+Chỉ trả về nếu ván **chưa đoán đúng và còn lượt**; ngược lại trả **204 No Content** (frontend bắt đầu ván mới).
+
+Response 200 (`GameStateResponse`):
+
+```json
+{
+  "gameId": 224, "wordId": 1532, "wordLength": 7, "partLengths": [4, 3], "maxAttempts": 10, "attempt": 2,
+  "rows": [
+    [ { "index": 0, "letter": "A", "color": "BLACK", "label": "den" } ],
+    [ { "index": 0, "letter": "O", "color": "YELLOW", "label": "vang" } ]
+  ]
+}
+```
+
+(`rows` rút gọn; mỗi hàng có `wordLength` ô, dựng lại từ `game_histories.guess` + `result`.)
 
 ### 4.6 `POST /api/game/guess`
 
 Request (`GuessRequest`):
 
 ```json
-{ "wordId": 3, "guess": "lanhdau", "userId": 1 }
+{ "gameId": 12, "guess": "LẠNH ĐẦU" }
 ```
 
-`guess` được `trim()` và chuyển chữ hoa phía server. Response 200 (`GuessResponse`):
+`guess` là cả cụm từ người chơi gõ, có thể có dấu tiếng Việt và dấu cách (frontend gửi dạng `"TIẾNG ANH"`). Server:
+- tách chữ cái (bỏ dấu cách, ký tự khác), chuyển sang chữ không dấu để chấm (`Ế → E`, `Đ → D`);
+- nếu có dấu cách thì số chữ của từng tiếng phải khớp `partLengths`, nếu không trả 400;
+- lưu `game_histories.guess` và trả `guess` dạng cụm có dấu tách theo tiếng; `cells[].letter` giữ chữ có dấu, màu được tính trên chữ không dấu. Lượt được đếm theo `gameId`. Người gửi phải trùng người đã bắt đầu ván (cùng user hoặc cùng là khách). Khi đoán đúng hoặc hết lượt, người dùng đã đăng nhập được cập nhật `total_score`, `games_played`, `games_won`. Response 200 (`GuessResponse`):
 
 ```json
 {
-  "wordId": 3, "wordLength": 7, "guess": "LANHDAU", "attempt": 2, "maxAttempts": 10,
+  "gameId": 12, "wordId": 3, "wordLength": 7, "guess": "LANHDAU", "attempt": 2, "maxAttempts": 10,
   "correct": true, "gameOver": true,
   "cells": [ { "index": 0, "letter": "L", "color": "GREEN", "label": "xanh la" } ],
   "score": 91,
-  "message": "Chuan! Ban doan dung tai lan thu 2. Duoc cong 91 diem."
+  "message": "Chuan! Ban doan dung tai lan thu 2. Duoc cong 91 diem.",
+  "answer": "LANHDAU"
 }
 ```
+
+`partLengths`: số chữ cái của từng tiếng (từ `part1`, `part2`; nếu `part1 + part2` khác `value` thì trả `[wordLength]`), có trong mọi `GuessResponse`. `answer` chỉ có giá trị khi `gameOver = true`; là từ có dấu in hoa tách tiếng (vd `"THƯ VIỆN"`), từ cũ không có `phrase` thì là dạng không dấu tách tiếng. Gửi tiếp vào ván đã kết thúc trả 200 với `gameOver = true`, `cells` rỗng.
 
 (`cells` rút gọn; thực tế có `wordLength` phần tử.)
 
@@ -129,18 +159,18 @@ Request (`GuessRequest`):
 | `score` | Integer \| null | Chỉ có giá trị khi đoán đúng |
 | `gameOver` | Boolean | `true` khi đúng hoặc hết lượt |
 
-Lỗi 400: `"Word not found"`.
+Lỗi 400: `"Game not found"` (không có ván / ván của người khác), `"Tu doan phai co N ki tu"` (sai độ dài), `"Tu doan phai gom N tieng: a + b chu cai"` (tách tiếng sai).
 
 ### 4.7 `GET /api/history/user/{userId}` và `/api/history/correct/user/{userId}`
 
 Response 200: mảng entity `GameHistory` trả trực tiếp (không qua DTO):
 
 ```json
-[ { "id": 10, "userId": 1, "wordId": 3, "guess": "LANHDAU", "result": "GREEN,GREEN,...",
+[ { "id": 10, "gameId": 9, "userId": 1, "wordId": 3, "guess": "LANHDAU", "result": "GREEN,GREEN,...",
     "attempt": 2, "correct": true, "playedAt": "2026-10-24T10:00:00" } ]
 ```
 
-Không kiểm tra `userId` trên path có trùng người dùng của token hay không (R-02).
+Bản ghi `attempt = 0` đánh dấu bắt đầu ván. `userId` trên path phải trùng người dùng của token, nếu không trả 403.
 
 ### 4.8 `GET /api/leaderboard`
 
@@ -160,10 +190,11 @@ Lỗi phát sinh trong filter bảo mật (ví dụ token sai/hết hạn) khôn
 ## 6. Câu hỏi mở
 
 - `OPEN QUESTION:` Có cần xuất bản OpenAPI (springdoc) làm contract chính thức thay cho tài liệu thủ công này?
-- `OPEN QUESTION:` `userId` nên lấy từ token thay vì tham số do client gửi?
+- `OPEN QUESTION:` Endpoint `/api/words/random*` vẫn public và trả đáp án (R-03); ứng dụng không gọi tới.
 
 ## 7. Lịch sử thay đổi
 
 | Phiên bản | Ngày | Mô tả |
 |-----------|------|-------|
 | 0.1 | 2026-10-24 | Khởi tạo từ controller/DTO |
+| 0.2 | 2026-10-24 | Cập nhật theo bản sửa: `gameId`, `answer`, game public, người chơi lấy từ token, kiểm tra quyền lịch sử |

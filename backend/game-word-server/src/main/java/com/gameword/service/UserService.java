@@ -38,7 +38,7 @@ public class UserService {
             .gamesWon(0)
             .build();
         user = userRepository.save(user);
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getUsername());
         return AuthResponse.builder()
             .token(token)
             .userId(user.getId())
@@ -52,12 +52,18 @@ public class UserService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid credentials");
         }
-        String token = jwtUtil.generateToken(user.getEmail());
+        String token = jwtUtil.generateToken(user.getUsername());
         return AuthResponse.builder()
             .token(token)
             .userId(user.getId())
             .username(user.getUsername())
             .build();
+    }
+
+    public Long getUserIdByUsername(String username) {
+        return userRepository.findByUsername(username)
+            .map(User::getId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
     public User getUser(Long id) {

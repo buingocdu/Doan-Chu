@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "words", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_words_value", columnNames = "value")
+        @UniqueConstraint(name = "uk_words_phrase", columnNames = "phrase")
 })
 @Data
 @NoArgsConstructor
@@ -29,6 +29,10 @@ public class Word {
 
     @Column(nullable = false)
     private String part2;
+
+    // Tu co dau, vd "máy tính"; null voi tu cu khong co trong tu dien
+    @Column
+    private String phrase;
 
     @Column(nullable = false)
     private Integer level;

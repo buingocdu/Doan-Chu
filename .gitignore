@@ -15,3 +15,9 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local run logs
+*.log
+
+# Mobile build env (IP LAN rieng tung may)
+.env.mobile

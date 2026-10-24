@@ -2,14 +2,14 @@
 
 Trò chơi đoán từ ghép tiếng Việt (không dấu) trên web: hệ thống chọn ngẫu nhiên một từ ghép, người chơi có tối đa 10 lượt đoán và nhận phản hồi màu cho từng ký tự.
 
-> Trạng thái: đang phát triển (Phase 1). Một số chức năng còn lỗi đã biết — xem [Báo cáo phân tích](docs/analysis/project-analysis-report.md).
+> Trạng thái: đang phát triển (Phase 1). Khách chơi được ngay; đăng nhập để được cộng điểm và lên bảng xếp hạng. Các vấn đề còn tồn tại: [Báo cáo phân tích](docs/analysis/project-analysis-report.md).
 
 ## Cấu trúc repository
 
 ```
 .
 ├── backend/game-word-server/   # Spring Boot REST API
-├── frontend/game-word-web/     # React + Vite SPA (JavaScript)
+├── frontend/game-word-web/     # React + TypeScript + Vite SPA, đóng gói mobile bằng Capacitor (android/, ios/)
 ├── docs/                       # Tài liệu dự án
 ├── docker-compose.yml          # PostgreSQL + backend + frontend (Nginx)
 ├── .env.example                # Mẫu biến môi trường cho Docker Compose
@@ -21,8 +21,9 @@ Trò chơi đoán từ ghép tiếng Việt (không dấu) trên web: hệ thố
 | Thành phần | Công nghệ |
 |-----------|-----------|
 | Backend | Java 17, Spring Boot 3.2.5, Spring Data JPA, Spring Security + JWT (jjwt 0.12.3), Liquibase, Lombok |
-| Frontend | React 18, React Router 6, Axios, Vite 5 |
+| Frontend | React 18, TypeScript 5, React Router 6, Axios, Vite 5, Vitest |
 | Database | PostgreSQL 15 |
+| Mobile | Capacitor 6 (Android, iOS) |
 | Triển khai | Docker, Docker Compose, Nginx |
 
 ## Bắt đầu nhanh
@@ -49,6 +50,11 @@ mvn spring-boot:run
 cd frontend/game-word-web
 npm install
 npm run dev
+
+# Kiểm tra
+npm run typecheck
+npm test
+npm run build
 ```
 
 Thông tin kết nối DB local nằm trong `backend/game-word-server/src/main/resources/application.properties`. Không commit mật khẩu thật. Chi tiết: [Runbook triển khai](docs/deployment/deployment-runbook.md).
@@ -58,9 +64,19 @@ Thông tin kết nối DB local nằm trong `backend/game-word-server/src/main/r
 - Mỗi ván có một từ ghép (ví dụ `MAYTINH` = `MAY` + `TINH`), người chơi biết độ dài từ.
 - Tối đa 10 lượt đoán.
 - Màu phản hồi: **xanh lá** — đúng vị trí; **vàng** — có trong từ nhưng sai vị trí; **xanh dương** — nguyên âm đúng gốc nhưng sai dấu; **đen** — không có trong từ.
-- Đoán đúng ở lượt *n* được tính điểm từ 100 (lượt 1) giảm dần, tối thiểu 10.
+- Đoán đúng ở lượt *n* được tính điểm từ 100 (lượt 1) giảm dần; người đã đăng nhập được cộng điểm vào bảng xếp hạng.
 
 Chi tiết cài đặt và giới hạn: [Kiến trúc §7](docs/architecture/architecture-overview.md#7-luật-chơi-được-cài-đặt--current).
+
+### App mobile (Android, iOS)
+
+```bash
+cd frontend/game-word-web
+cp .env.mobile.example .env.mobile   # sửa IP máy chạy backend
+npm run build:mobile                 # build web + đồng bộ vào android/ và ios/
+```
+
+APK Android: build bằng Gradle trong `android/`. iOS: cần macOS + Xcode. Chi tiết: [Build app mobile](docs/deployment/mobile-build.md).
 
 ## API
 
@@ -68,11 +84,11 @@ Chi tiết cài đặt và giới hạn: [Kiến trúc §7](docs/architecture/ar
 |--------|----------|------|-------|
 | POST | `/api/auth/register` | — | Đăng ký |
 | POST | `/api/auth/login` | — | Đăng nhập, trả JWT |
-| GET | `/api/words` | — | Danh sách từ |
 | GET | `/api/words/random` | — | Từ ngẫu nhiên (`excludedIds`) |
 | GET | `/api/words/random/{level}` | — | Từ ngẫu nhiên theo cấp độ |
-| POST | `/api/game/start` | JWT | Bắt đầu ván |
-| POST | `/api/game/guess` | JWT | Gửi lượt đoán |
+| POST | `/api/game/start` | Tùy chọn | Bắt đầu ván (có JWT thì được tính điểm) |
+| GET | `/api/game/current` | Tùy chọn | Ván đang chơi dở + các lượt đã đoán (khôi phục khi tải lại trang) |
+| POST | `/api/game/guess` | Tùy chọn | Gửi lượt đoán (`gameId`, `guess`) |
 | GET | `/api/history/user/{userId}` | JWT | Lịch sử chơi |
 | GET | `/api/history/correct/user/{userId}` | JWT | Các lượt đoán đúng |
 | GET | `/api/leaderboard` | — | Bảng xếp hạng |
@@ -89,9 +105,10 @@ Danh mục đầy đủ: [docs/documentation-catalog.md](docs/documentation-cata
 | [Tham chiếu API](docs/api/api-reference.md) | Endpoint, DTO, mã lỗi |
 | [Thiết kế CSDL](docs/database/database-design.md) | ERD, data dictionary, migration |
 | [Runbook triển khai](docs/deployment/deployment-runbook.md) | Biến môi trường, chạy local/Docker |
+| [Build app mobile](docs/deployment/mobile-build.md) | Capacitor, build APK Android, iOS |
 | [Báo cáo phân tích](docs/analysis/project-analysis-report.md) | Lỗi và rủi ro đã biết |
 
 ## Lộ trình (Phase 2)
 
-- Ứng dụng mobile (React Native hoặc Flutter) — chưa bắt đầu.
+- Ứng dụng mobile: đã đóng gói bằng Capacitor (APK debug); còn icon, HTTPS, ký release.
 - Hoàn thiện đăng nhập, xếp hạng và lưu điểm tổng kết.

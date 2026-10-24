@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Cham diem theo chu co dau nen khoa duy nhat la phrase; value (khong dau) duoc phep trung, vd "bàn tay" / "bán tay" -->
+    <changeSet id="9" author="claude">
+        <dropUniqueConstraint tableName="words" constraintName="uk_words_value"/>
+        <addUniqueConstraint tableName="words" columnNames="phrase" constraintName="uk_words_phrase"/>
+        <createIndex tableName="words" indexName="idx_words_value">
+            <column name="value"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Tat ca tu 2 tieng hop le cua Viet74K (44.920 tu), level 1-3 pho bien nhat, 4 co trong Viet22K, 5 it gap.
+         Nguon: duyet/vietnamese-wordlist Viet74K/Viet22K/Viet11K (GPL-2.0) https://github.com/duyet/vietnamese-wordlist
+         Xep hang theo tan suat tieng: hermitdave/FrequencyWords vi_50k (CC BY-SA 4.0). Sinh bang tools/build_dictionary.py.
+         Nap vao bang tam roi INSERT ... ON CONFLICT mot lan (nhanh hon upsert tung dong). -->
+    <changeSet id="10" author="claude">
+        <createTable tableName="words_import">
+            <column name="value" type="VARCHAR(255)"/>
+            <column name="part1" type="VARCHAR(255)"/>
+            <column name="part2" type="VARCHAR(255)"/>
+            <column name="phrase" type="VARCHAR(255)"/>
+            <column name="level" type="INTEGER"/>
+        </createTable>
+        <loadData tableName="words_import" file="words-vi-all.csv" relativeToChangelogFile="true"
+                  encoding="UTF-8" separator=",">
+            <column name="value" type="STRING"/>
+            <column name="part1" type="STRING"/>
+            <column name="part2" type="STRING"/>
+            <column name="phrase" type="STRING"/>
+            <column name="level" type="NUMERIC"/>
+        </loadData>
+        <sql>
+            INSERT INTO words (value, part1, part2, phrase, level, active, created_at)
+            SELECT value, part1, part2, phrase, level, true, CURRENT_TIMESTAMP FROM words_import
+            ON CONFLICT (phrase) DO UPDATE
+                SET value = EXCLUDED.value, part1 = EXCLUDED.part1, part2 = EXCLUDED.part2,
+                    level = EXCLUDED.level, active = true
+        </sql>
+        <dropTable tableName="words_import"/>
+    </changeSet>
+
+</databaseChangeLog>

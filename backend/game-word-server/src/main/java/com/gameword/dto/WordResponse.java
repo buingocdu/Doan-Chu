@@ -12,6 +12,7 @@ import lombok.Builder;
 public class WordResponse {
     private Long id;
     private String value;
+    private String phrase;
     private Integer wordLength;
     private Integer level;
     private Integer maxAttempts;

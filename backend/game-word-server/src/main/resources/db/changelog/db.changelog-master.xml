@@ -5,6 +5,9 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
 
-    <include file="db/changelog/v1.0.0/initial-schema.xml" relativeToChangelogFile="true"/>
+    <include file="v1.0.0/initial-schema.xml" relativeToChangelogFile="true"/>
+    <include file="v1.1.0/add-game-id.xml" relativeToChangelogFile="true"/>
+    <include file="v1.2.0/words-dictionary.xml" relativeToChangelogFile="true"/>
+    <include file="v1.3.0/words-dictionary-all.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

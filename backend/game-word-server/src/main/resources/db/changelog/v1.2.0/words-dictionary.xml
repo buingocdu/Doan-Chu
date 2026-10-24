@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- phrase: tu co dau, cach nhau bang dau cach (vd "máy tính"); value/part1/part2 van la dang khong dau de cham diem -->
+    <changeSet id="6" author="claude">
+        <addColumn tableName="words">
+            <column name="phrase" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- 2000 tu 2 tieng tu dien tieng Viet; trung value voi ban ghi cu thi cap nhat (them phrase).
+         Nguon: duyet/vietnamese-wordlist Viet22K/Viet11K (GPL-2.0) https://github.com/duyet/vietnamese-wordlist
+         Xep hang theo tan suat tieng: hermitdave/FrequencyWords vi_50k (CC BY-SA 4.0).
+         Sinh bang tools/select_words.py. value/part1/part2: khong dau; phrase: co dau -->
+    <changeSet id="7" author="claude">
+        <loadUpdateData tableName="words" file="words-vi-2000.csv" relativeToChangelogFile="true"
+                        primaryKey="value" encoding="UTF-8" separator=",">
+            <column name="value" type="STRING"/>
+            <column name="part1" type="STRING"/>
+            <column name="part2" type="STRING"/>
+            <column name="phrase" type="STRING"/>
+            <column name="level" type="NUMERIC"/>
+            <column name="active" type="BOOLEAN"/>
+        </loadUpdateData>
+    </changeSet>
+
+    <!-- Tu mau cu khong co trong tu dien (khong co phrase): ngung su dung, giu lai vi game_histories con tham chieu -->
+    <changeSet id="8" author="claude">
+        <update tableName="words">
+            <column name="active" valueBoolean="false"/>
+            <where>phrase IS NULL</where>
+        </update>
+        <update tableName="words">
+            <column name="created_at" valueComputed="CURRENT_TIMESTAMP"/>
+            <where>created_at IS NULL</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

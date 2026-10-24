@@ -11,15 +11,13 @@ import java.util.Optional;
 
 @Repository
 public interface WordRepository extends JpaRepository<Word, Long> {
-    Optional<Word> findByValue(String value);
-
-    List<Word> findByActiveTrueOrderByLevelAscIdAsc();
-
-    @Query("SELECT w FROM Word w WHERE w.active = true AND w.id NOT IN :excludedIds ORDER BY RANDOM()")
+    // excludedIds khong duoc rong (NOT IN () khong hop le) - WordService truyen [-1] khi khong loai tru
+    @Query(value = "SELECT * FROM words w WHERE w.active = true AND w.id NOT IN (:excludedIds) ORDER BY RANDOM() LIMIT 1",
+           nativeQuery = true)
     Optional<Word> findRandomNotIn(@Param("excludedIds") List<Long> excludedIds);
 
-    @Query("SELECT w FROM Word w WHERE w.active = true AND w.level = :level AND w.id NOT IN :excludedIds ORDER BY RANDOM()")
+    @Query(value = "SELECT * FROM words w WHERE w.active = true AND w.level = :level AND w.id NOT IN (:excludedIds) ORDER BY RANDOM() LIMIT 1",
+           nativeQuery = true)
     Optional<Word> findRandomByLevelNotIn(@Param("level") Integer level, @Param("excludedIds") List<Long> excludedIds);
 
-    boolean existsByValue(String value);
 }

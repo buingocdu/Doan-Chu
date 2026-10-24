@@ -10,6 +10,7 @@ import lombok.Builder;
 @AllArgsConstructor
 @Builder
 public class GuessRequest {
+    private Long gameId;
     private Long wordId;
     private String guess;
     private Long userId;

@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/words/random").permitAll()
                 .requestMatchers("/api/words/**").permitAll()
-                .requestMatchers("/api/game/**").authenticated()
+                .requestMatchers("/api/game/**").permitAll()
                 .requestMatchers("/api/history/**").authenticated()
                 .requestMatchers("/api/leaderboard/**").permitAll()
                 .anyRequest().authenticated()
