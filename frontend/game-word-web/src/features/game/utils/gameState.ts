@@ -20,6 +20,7 @@ export interface GameState {
   notice: string | null;
   score: number | null;
   answer: string | null;
+  definition: string | null;
 }
 
 export type GameAction =
@@ -51,6 +52,7 @@ export const initialGameState: GameState = {
   notice: null,
   score: null,
   answer: null,
+  definition: null,
 };
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -114,6 +116,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         maxAttempts: r.maxAttempts,
         score: r.score,
         answer: r.answer,
+        definition: r.definition ?? null,
       };
     }
     case 'submit_failure':

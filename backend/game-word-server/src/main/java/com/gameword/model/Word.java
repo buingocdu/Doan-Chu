@@ -34,6 +34,10 @@ public class Word {
     @Column
     private String phrase;
 
+    // Giai nghia (Wiktionary tieng Viet, CC BY-SA 4.0); nhieu nghia cach nhau boi xuong dong
+    @Column(length = 1000)
+    private String definition;
+
     @Column(nullable = false)
     private Integer level;
 

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Giai nghia tieng Viet hien thi khi ket thuc van; nhieu nghia cach nhau boi xuong dong -->
+    <changeSet id="11" author="claude">
+        <addColumn tableName="words">
+            <column name="definition" type="VARCHAR(1000)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Nguon: Wiktionary tieng Viet (vi.wiktionary.org), giay phep CC BY-SA 4.0 - phai ghi nguon khi hien thi.
+         Sinh bang tools/extract_definitions.py tu ban dump viwiktionary-latest-pages-articles (01/10/2026). -->
+    <changeSet id="12" author="claude">
+        <createTable tableName="definitions_import">
+            <column name="phrase" type="VARCHAR(255)"/>
+            <column name="definition" type="VARCHAR(1000)"/>
+        </createTable>
+        <loadData tableName="definitions_import" file="definitions-vi.csv" relativeToChangelogFile="true"
+                  encoding="UTF-8" separator=",">
+            <column name="phrase" type="STRING"/>
+            <column name="definition" type="STRING"/>
+        </loadData>
+        <sql>
+            UPDATE words w SET definition = i.definition
+            FROM definitions_import i
+            WHERE w.phrase = i.phrase
+        </sql>
+        <dropTable tableName="definitions_import"/>
+    </changeSet>
+
+</databaseChangeLog>

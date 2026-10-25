@@ -149,7 +149,8 @@ Request (`GuessRequest`):
 }
 ```
 
-`partLengths`: số chữ cái của từng tiếng (từ `part1`, `part2`; nếu `part1 + part2` khác `value` thì trả `[wordLength]`), có trong mọi `GuessResponse`. `answer` chỉ có giá trị khi `gameOver = true`; là từ có dấu in hoa tách tiếng (vd `"THƯ VIỆN"`), từ cũ không có `phrase` thì là dạng không dấu tách tiếng. Gửi tiếp vào ván đã kết thúc trả 200 với `gameOver = true`, `cells` rỗng.
+`partLengths`: số chữ cái của từng tiếng (từ `part1`, `part2`; nếu `part1 + part2` khác `value` thì trả `[wordLength]`), có trong mọi `GuessResponse`. `definition` (giải nghĩa từ Wiktionary, các nghĩa cách nhau bởi `
+`, có thể null) và `answer` chỉ có giá trị khi `gameOver = true`; là từ có dấu in hoa tách tiếng (vd `"THƯ VIỆN"`), từ cũ không có `phrase` thì là dạng không dấu tách tiếng. Gửi tiếp vào ván đã kết thúc trả 200 với `gameOver = true`, `cells` rỗng.
 
 (`cells` rút gọn; thực tế có `wordLength` phần tử.)
 

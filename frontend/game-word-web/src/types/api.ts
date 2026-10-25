@@ -24,6 +24,8 @@ export interface GuessResponse {
   score: number | null;
   message: string;
   answer: string | null;
+  /** Giải nghĩa đáp án (Wiktionary), chỉ có khi gameOver; nhiều nghĩa cách nhau bởi xuống dòng */
+  definition?: string | null;
 }
 
 /** Ván đang chơi dở, trả về từ GET /api/game/current để khôi phục sau khi tải lại trang */

@@ -2,7 +2,7 @@
 title: "Thiết kế cơ sở dữ liệu"
 document_id: "DOC-003"
 status: "Draft"
-version: "0.3"
+version: "0.4"
 owner_role: "Backend Lead"
 last_updated: "2026-10-24"
 related_documents: ["DOC-001", "DOC-002", "DOC-005"]
@@ -38,6 +38,7 @@ erDiagram
         VARCHAR part1
         VARCHAR part2
         VARCHAR phrase
+        VARCHAR definition
         INTEGER level
         BOOLEAN active
         TIMESTAMP created_at
@@ -80,7 +81,8 @@ Quan hệ chỉ là logic: changelog **không tạo foreign key**; entity `GameH
 | `value` | VARCHAR(255) | Không | | index `idx_words_value` (không còn unique từ v1.3.0) | Từ ghép, viết hoa, không dấu; nhiều từ có thể trùng (vd "bàn tay" / "bán tay") |
 | `part1`, `part2` | VARCHAR(255) | Không | | | Hai tiếng của từ, không dấu (dùng tính `partLengths`) |
 | `phrase` | VARCHAR(255) | Có | | `uk_words_phrase` | Từ có dấu, cách nhau bằng dấu cách (vd `máy tính`); là đáp án dùng để chấm (so từng chữ có dấu theo vị trí). Null với từ mẫu cũ |
-| `level` | INTEGER | Không | | | Cấp độ (dữ liệu seed: 1–3) |
+| `level` | INTEGER | Không | | | Cấp độ 1–5 theo độ phổ biến |
+| `definition` | VARCHAR(1000) | Có | | | Giải nghĩa tiếng Việt (tối đa 3 nghĩa, cách nhau bởi xuống dòng); nguồn Wiktionary tiếng Việt, CC BY-SA 4.0. Null nếu chưa có |
 | `active` | BOOLEAN | Không | true | | Chỉ từ active mới được random |
 | `created_at` | TIMESTAMP | Có | | | Gán bởi `@PrePersist` |
 
@@ -111,6 +113,8 @@ Quan hệ chỉ là logic: changelog **không tạo foreign key**; entity `GameH
 | `7` | claude | Nạp 2000 từ 2 tiếng từ `v1.2.0/words-vi-2000.csv` bằng `loadUpdateData` (khóa `value`; trùng thì cập nhật) |
 | `8` | claude | `active = false` cho từ không có `phrase` (từ mẫu cũ); gán `created_at` còn trống |
 | `9` | claude | `v1.3.0/words-dictionary-all.xml`: bỏ `uk_words_value`, thêm `uk_words_phrase`, index `idx_words_value` |
+| `11` | claude | `v1.4.0/words-definition.xml`: thêm cột `words.definition` |
+| `12` | claude | Nạp 22.670 giải nghĩa từ `v1.4.0/definitions-vi.csv` qua bảng tạm `definitions_import` + `UPDATE … FROM` theo `phrase` |
 | `10` | claude | Nạp toàn bộ 44.920 từ 2 tiếng (`v1.3.0/words-vi-all.csv`) qua bảng tạm `words_import` + `INSERT … ON CONFLICT (phrase)` |
 
 - Master: `db/changelog/db.changelog-master.xml` → include `v1.0.0/initial-schema.xml`, `v1.1.0/add-game-id.xml` (đường dẫn tương đối, `relativeToChangelogFile="true"`).
@@ -135,6 +139,8 @@ Dữ liệu từ do Liquibase quản lý (changeset 7), không còn seed trong c
 Kết quả trên DB dev: 2017 bản ghi, 2000 active có `phrase`, 17 từ mẫu cũ bị tắt (còn được `game_histories` tham chiếu).
 
 **Toàn bộ từ điển (v1.3.0):** `tools/build_dictionary.py` lấy tất cả từ 2 tiếng hợp lệ của Viet74K (chữ thường, chỉ chữ cái tiếng Việt, ≤ 12 chữ cái, bỏ từ tục) — 44.920 từ. Cấp độ: 2000 từ phổ biến nhất level 1–3; có trong Viet22K level 4; chỉ có trong Viet74K level 5 (cấp độ là ước lượng, một số từ thông dụng như "công bằng" vẫn ở level 5). DB dev sau khi nạp: 44.947 bản ghi, 44.930 active (level 1–3: 2010, level 4: 15.368, level 5: 27.552).
+
+**Giải nghĩa (v1.4.0):** `tools/extract_definitions.py` đọc dump `viwiktionary-latest-pages-articles.xml.bz2` (bản 01/10/2026), lấy phần tiếng Việt của trang có tiêu đề trùng `phrase`, tối đa 3 dòng định nghĩa `# …` (bỏ ví dụ `#:`/trích dẫn `#*`), bỏ cú pháp wiki. Độ phủ: 22.670 / 44.930 từ active (level 1–3 khoảng 72%, level 4 khoảng 75%, level 5 khoảng 35%). Giấy phép CC BY-SA 4.0: giao diện luôn ghi nguồn kèm link tới trang Wiktionary.
 
 `OPEN QUESTION:` `/api/game/start` chọn ngẫu nhiên trên mọi từ active nên phần lớn là từ ít gặp (level 4–5); cân nhắc chỉ chọn level ≤ 3 hoặc theo độ khó người chơi chọn.
 

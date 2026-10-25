@@ -88,6 +88,7 @@ export default function GamePage() {
             score={state.score}
             // Backend trả đáp án có dấu, đã tách tiếng ("MÁY TÍNH"); dữ liệu cũ không có dấu cách thì tự tách
             answer={state.answer && (state.answer.includes(' ') ? state.answer : formatGuess(state.answer, state.partLengths))}
+            definition={state.definition}
             loggedIn={user !== null}
             onNext={() => void newGame()}
           />

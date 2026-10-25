@@ -27,4 +27,6 @@ public class GuessResponse {
     private String message;
     // Dap an, chi co gia tri khi gameOver = true
     private String answer;
+    // Giai nghia cua dap an, chi co khi gameOver = true (null neu tu dien chua co)
+    private String definition;
 }

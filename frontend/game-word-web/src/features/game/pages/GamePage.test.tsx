@@ -122,7 +122,8 @@ describe('GamePage', () => {
       correct: true,
       gameOver: true,
       score: 100,
-      answer: 'MEO',
+      answer: 'M ÈO',
+      definition: 'Nghĩa thứ nhất.\nNghĩa thứ hai.',
       cells: [
         { index: 0, letter: 'M', color: 'GREEN', label: '' },
         { index: 1, letter: 'È', color: 'GREEN', label: '' },
@@ -140,6 +141,15 @@ describe('GamePage', () => {
     expect(api.startGame).toHaveBeenCalled();
     expect(await screen.findByText('Chính xác!')).toBeInTheDocument();
     expect(localStorage.getItem('gw.currentGame')).toBeNull();
+    // Hiện giải nghĩa kèm nguồn
+    expect(screen.getByRole('heading', { name: /Giải nghĩa: m èo/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(
+      expect.arrayContaining(['Nghĩa thứ nhất.', 'Nghĩa thứ hai.']),
+    );
+    expect(screen.getByRole('link', { name: /Wiktionary tiếng Việt/ })).toHaveAttribute(
+      'href',
+      'https://vi.wiktionary.org/wiki/m_%C3%A8o',
+    );
     const firstRow = screen.getAllByRole('row')[0];
     expect(within(firstRow).getByLabelText('M: đúng chữ, đúng dấu, đúng vị trí')).toHaveClass('tile-green');
     expect(screen.getByRole('button', { name: /Màn tiếp theo/ })).toBeInTheDocument();

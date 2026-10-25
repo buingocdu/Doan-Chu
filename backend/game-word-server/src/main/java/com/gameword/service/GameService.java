@@ -155,6 +155,7 @@ public class GameService {
                 .score(null)
                 .message("Van choi da ket thuc. Tu dung la: " + answerOf(word))
                 .answer(answerOf(word))
+                .definition(word.getDefinition())
                 .build();
         }
         if (guess.length() != target.length()) {
@@ -222,6 +223,7 @@ public class GameService {
             .score(score)
             .message(message)
             .answer(gameOver ? answerOf(word) : null)
+            .definition(gameOver ? word.getDefinition() : null)
             .build();
     }
 

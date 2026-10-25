@@ -22,7 +22,11 @@ MAX_LEN = 1000
 with open(words_path, encoding='utf-8') as f:
     wanted = {unicodedata.normalize('NFC', r['phrase']) for r in csv.DictReader(f)}
 
-LANG_HEADER = re.compile(r'^(\{\{-([a-z]{2,4})-\}\}|==\s*(\{\{langname\|([a-z-]+)\}\}|[^=]+?)\s*==)\s*$')
+# Tieu de ngon ngu: {{-vie-}} (ma 3 chu cai), =={{langname|vi}}==, ==Tiếng Việt==.
+# {{-noun-}}, {{-pron-}}, {{-ref-}}, ... la tieu de muc trong cung ngon ngu, khong phai ngon ngu moi.
+LANG_HEADER = re.compile(r'^(\{\{-([a-z]{3})-\}\}|==\s*(\{\{langname\|([a-z-]+)\}\}|[^=]+?)\s*==)\s*$')
+SECTION_CODES = {'ref', 'adj', 'adv', 'ant', 'syn', 'dfn', 'num', 'drv', 'see', 'abr', 'alt', 'art', 'det', 'pro',
+                 'suf', 'pre', 'prp', 'phr', 'cog', 'rel', 'var', 'abb', 'def', 'obs', 'hom'}
 DEF_LINE = re.compile(r'^#(?![:*#])\s*(.+)$')
 
 
@@ -32,7 +36,7 @@ def vietnamese_block(text):
     blocks, current, has_header = [], None, False
     for line in lines:
         m = LANG_HEADER.match(line.strip())
-        if m:
+        if m and m.group(2) not in SECTION_CODES:
             code = m.group(2) or m.group(4) or (m.group(3) or '').strip()
             is_lang = m.group(2) is not None or m.group(4) is not None or code.startswith('Tiếng ')
             if is_lang:
@@ -70,17 +74,18 @@ def clean(s):
     s = s.replace("'''", '').replace("''", '')
     s = re.sub(r'\s+', ' ', s).strip(' ;,')
     s = re.sub(r'\(\s*\)', '', s).strip()
-    return s
+    return s.lstrip('.,;:- ').strip()
 
 
-def definitions(text):
+def definitions(text, title):
     senses = []
     for line in vietnamese_block(text):
         m = DEF_LINE.match(line.strip())
         if not m:
             continue
         d = clean(m.group(1))
-        if len(d) >= 2 and d not in senses:
+        # Bo nghia rong hoac chi lap lai chinh tu do (vd "Bàn tay.")
+        if len(d) >= 2 and d not in senses and d.rstrip('. ').lower() != title.lower():
             senses.append(d[0].upper() + d[1:])
         if len(senses) == MAX_SENSES:
             break
@@ -98,7 +103,7 @@ with bz2.open(dump_path, 'rb') as f:
             ns = el.text
         elif tag == 'text':
             if ns == '0' and title in wanted and el.text:
-                d = definitions(el.text)
+                d = definitions(el.text, title)
                 if d:
                     found[title] = d
         elif tag == 'page':

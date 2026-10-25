@@ -1,17 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { PartyPopper, RotateCcw } from 'lucide-react';
+import WordDefinition from './WordDefinition';
 
 interface GameResultProps {
   won: boolean;
   attempts: number;
   score: number | null;
   answer: string | null;
+  definition: string | null;
   loggedIn: boolean;
   onNext: () => void;
 }
 
-export default function GameResult({ won, attempts, score, answer, loggedIn, onNext }: GameResultProps) {
+export default function GameResult({ won, attempts, score, answer, definition, loggedIn, onNext }: GameResultProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => buttonRef.current?.focus(), []);
 
@@ -35,6 +37,7 @@ export default function GameResult({ won, attempts, score, answer, loggedIn, onN
           </p>
         </>
       )}
+      {answer && <WordDefinition answer={answer} definition={definition} />}
       {!loggedIn && (
         <p className="muted">
           <Link to="/login">Đăng nhập</Link> để lưu điểm và lên bảng xếp hạng.

@@ -9,5 +9,6 @@
     <include file="v1.1.0/add-game-id.xml" relativeToChangelogFile="true"/>
     <include file="v1.2.0/words-dictionary.xml" relativeToChangelogFile="true"/>
     <include file="v1.3.0/words-dictionary-all.xml" relativeToChangelogFile="true"/>
+    <include file="v1.4.0/words-definition.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>
