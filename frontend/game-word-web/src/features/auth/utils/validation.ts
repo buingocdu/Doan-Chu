@@ -3,6 +3,8 @@ export type AuthMode = 'login' | 'register';
 export interface AuthValues {
   username: string;
   password: string;
+  /** Chỉ dùng khi đăng ký */
+  confirmPassword: string;
   email: string;
 }
 
@@ -41,6 +43,9 @@ export function validateAuth(values: AuthValues, mode: AuthMode): AuthErrors {
     errors.password = `Mật khẩu cần ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`;
 
   if (mode === 'register') {
+    if (!values.confirmPassword) errors.confirmPassword = 'Vui lòng nhập lại mật khẩu.';
+    else if (values.confirmPassword !== values.password) errors.confirmPassword = 'Mật khẩu nhập lại không khớp.';
+
     const emailError = validateEmail(values.email);
     if (emailError) errors.email = emailError;
   }

@@ -13,7 +13,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const { user, login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [values, setValues] = useState<AuthValues>({ username: '', password: '', email: '' });
+  const [values, setValues] = useState<AuthValues>({ username: '', password: '', confirmPassword: '', email: '' });
   const [errors, setErrors] = useState<AuthErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -96,6 +96,17 @@ export default function AuthPage({ mode }: AuthPageProps) {
             error={errors.password}
             onChange={update('password')}
           />
+          {!isLogin && (
+            <Field
+              id="confirmPassword"
+              label="Nhập lại mật khẩu"
+              type="password"
+              autoComplete="new-password"
+              value={values.confirmPassword}
+              error={errors.confirmPassword}
+              onChange={update('confirmPassword')}
+            />
+          )}
           {isLogin && (
             <p className="forgot-link">
               <Link to="/forgot-password">Quên mật khẩu?</Link>
