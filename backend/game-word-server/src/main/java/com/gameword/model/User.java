@@ -40,6 +40,10 @@ public class User {
     @Column(name = "games_won")
     private Integer gamesWon = 0;
 
+    // Tang len moi lan doi/dat lai mat khau; JWT mang version cu bi tu choi
+    @Column(name = "token_version", nullable = false)
+    private Integer tokenVersion = 0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

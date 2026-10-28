@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { authLogin, authRegister, TOKEN_KEY } from '../services/api';
+import { authChangePassword, authLogin, authRegister, SESSION_REJECTED_EVENT, TOKEN_KEY } from '../services/api';
 import type { AuthResponse } from '../types/api';
 
 const USER_KEY = 'user';
@@ -13,6 +13,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -69,6 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(next);
   }, []);
 
+  // Tự đăng xuất khi server từ chối token (đã bị thu hồi do đổi/đặt lại mật khẩu)
+  useEffect(() => {
+    window.addEventListener(SESSION_REJECTED_EVENT, logout);
+    return () => window.removeEventListener(SESSION_REJECTED_EVENT, logout);
+  }, [logout]);
+
   // Tự đăng xuất khi token hết hạn
   useEffect(() => {
     if (!user) return;
@@ -86,6 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login: async (username, password) => applySession(await authLogin({ username, password })),
       register: async (username, password, email) =>
         applySession(await authRegister({ username, password, email })),
+      changePassword: async (currentPassword, newPassword) =>
+        applySession(await authChangePassword({ currentPassword, newPassword })),
     }),
     [user, logout, applySession],
   );

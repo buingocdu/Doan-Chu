@@ -2,13 +2,17 @@ import axios from 'axios';
 import type {
   ApiErrorBody,
   AuthResponse,
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
   GameHistory,
   GameStateResponse,
   GuessRequest,
   GuessResponse,
   LeaderboardEntry,
   LoginRequest,
+  MessageResponse,
   RegisterRequest,
+  ResetPasswordRequest,
 } from '../types/api';
 
 export const TOKEN_KEY = 'token';
@@ -21,11 +25,32 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+// Phát khi server từ chối token (vd đã đổi mật khẩu ở thiết bị khác); AuthProvider nghe để đăng xuất
+export const SESSION_REJECTED_EVENT = 'auth:session-rejected';
+
+API.interceptors.response.use(undefined, (error: unknown) => {
+  const status = getHttpStatus(error);
+  if (axios.isAxiosError(error) && error.config?.headers?.Authorization && (status === 401 || status === 403)) {
+    window.dispatchEvent(new Event(SESSION_REJECTED_EVENT));
+  }
+  return Promise.reject(error);
+});
+
 export const authLogin = (data: LoginRequest) =>
   API.post<AuthResponse>('/auth/login', data).then((r) => r.data);
 
 export const authRegister = (data: RegisterRequest) =>
   API.post<AuthResponse>('/auth/register', data).then((r) => r.data);
+
+export const authForgotPassword = (data: ForgotPasswordRequest) =>
+  API.post<MessageResponse>('/auth/forgot-password', data).then((r) => r.data);
+
+export const authResetPassword = (data: ResetPasswordRequest) =>
+  API.post<MessageResponse>('/auth/reset-password', data).then((r) => r.data);
+
+// Trả token mới: các token cũ bị vô hiệu hóa sau khi đổi mật khẩu
+export const authChangePassword = (data: ChangePasswordRequest) =>
+  API.post<AuthResponse>('/auth/change-password', data).then((r) => r.data);
 
 export const startGame = (excludedIds: number[]) =>
   API.post<GuessResponse>('/game/start', null, {
@@ -50,7 +75,13 @@ export const getLeaderboard = () =>
 
 // Thông báo lỗi backend (tiếng Anh/không dấu) -> tiếng Việt cho người dùng
 const KNOWN_MESSAGES: Record<string, string> = {
-  'Invalid credentials': 'Sai tên tài khoản hoặc mật khẩu.',
+  'Invalid credentials': 'Sai tên tài khoản/email hoặc mật khẩu.',
+  'Current password is incorrect': 'Mật khẩu hiện tại không đúng.',
+  'New password too short': 'Mật khẩu mới cần ít nhất 6 ký tự.',
+  'Email is required': 'Vui lòng nhập email.',
+  'Email service not configured': 'Máy chủ chưa cấu hình gửi email. Vui lòng liên hệ quản trị viên.',
+  'Email sending failed': 'Không gửi được email. Vui lòng thử lại sau.',
+  'Invalid or expired reset token': 'Link đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc đã được dùng. Hãy yêu cầu link mới.',
   'Username already exists': 'Tên tài khoản đã được sử dụng.',
   'Email already exists': 'Email đã được sử dụng.',
   'Game not found': 'Ván chơi không còn hợp lệ. Hãy bắt đầu ván mới.',

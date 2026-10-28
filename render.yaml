@@ -32,3 +32,18 @@ services:
         value: "3"
       - key: JAVA_TOOL_OPTIONS
         value: "-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError"
+      # Gui email quen mat khau. Goi Free cua Render co the chan cong SMTP 25/465/587:
+      # dung nha cung cap co cong 2525 (vd Brevo: smtp-relay.brevo.com:2525) neu gap loi ket noi
+      - key: SPRING_MAIL_HOST
+        sync: false
+      - key: SPRING_MAIL_PORT
+        sync: false
+      - key: SPRING_MAIL_USERNAME
+        sync: false
+      - key: SPRING_MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Dia chi web (Vercel) de tao link dat lai mat khau, vd https://<app>.vercel.app
+      - key: FRONTEND_URL
+        sync: false

@@ -12,6 +12,8 @@ import { usePhysicalKeyboard } from '../hooks/usePhysicalKeyboard';
 import { formatGuess } from '../utils/gameState';
 
 const DEFAULT_MAX_ATTEMPTS = 10;
+// Tạm ẩn bàn phím ảo; người chơi gõ qua ô nhập/bàn phím thật. Đặt true để hiện lại.
+const SHOW_VIRTUAL_KEYBOARD = false;
 
 export default function GamePage() {
   const { user } = useAuth();
@@ -103,12 +105,14 @@ export default function GamePage() {
               onChange={setInput}
               onSubmit={() => void submit()}
             />
-            <Keyboard
-              disabled={!playing}
-              onLetter={typeLetter}
-              onEnter={() => void submit()}
-              onBackspace={backspace}
-            />
+            {SHOW_VIRTUAL_KEYBOARD && (
+              <Keyboard
+                disabled={!playing}
+                onLetter={typeLetter}
+                onEnter={() => void submit()}
+                onBackspace={backspace}
+              />
+            )}
           </>
         )}
       </>

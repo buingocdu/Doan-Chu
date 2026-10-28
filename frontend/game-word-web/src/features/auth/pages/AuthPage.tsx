@@ -2,43 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { getErrorMessage } from '../../../services/api';
+import Field from '../components/Field';
 import { validateAuth, type AuthErrors, type AuthMode, type AuthValues } from '../utils/validation';
 
 interface AuthPageProps {
   mode: AuthMode;
-}
-
-interface FieldProps {
-  id: keyof AuthValues;
-  label: string;
-  type: string;
-  autoComplete: string;
-  value: string;
-  error?: string;
-  onChange: (value: string) => void;
-}
-
-function Field({ id, label, type, autoComplete, value, error, onChange }: FieldProps) {
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <input
-        id={id}
-        name={id}
-        type={type}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
-      />
-      {error && (
-        <p id={`${id}-error`} className="field-error">
-          {error}
-        </p>
-      )}
-    </div>
-  );
 }
 
 export default function AuthPage({ mode }: AuthPageProps) {
@@ -101,7 +69,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
         <form onSubmit={handleSubmit} noValidate>
           <Field
             id="username"
-            label="Tên tài khoản"
+            label={isLogin ? 'Tên tài khoản hoặc email' : 'Tên tài khoản'}
             type="text"
             autoComplete="username"
             value={values.username}
@@ -128,6 +96,11 @@ export default function AuthPage({ mode }: AuthPageProps) {
             error={errors.password}
             onChange={update('password')}
           />
+          {isLogin && (
+            <p className="forgot-link">
+              <Link to="/forgot-password">Quên mật khẩu?</Link>
+            </p>
+          )}
           <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
             {submitting ? 'Đang xử lý…' : isLogin ? 'Đăng nhập' : 'Đăng ký'}
           </button>

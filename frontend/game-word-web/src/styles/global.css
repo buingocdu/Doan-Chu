@@ -777,6 +777,17 @@ nav {
   font-weight: 600;
 }
 
+.alert-success {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+
+.forgot-link {
+  margin: -0.4rem 0 0.9rem;
+  text-align: right;
+  font-size: 0.875rem;
+}
+
 .switch {
   margin-top: 1rem;
   text-align: center;

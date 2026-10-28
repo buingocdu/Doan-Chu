@@ -51,12 +51,31 @@ export interface AuthResponse {
 }
 
 export interface LoginRequest {
+  /** Tên tài khoản hoặc email */
   username: string;
   password: string;
 }
 
 export interface RegisterRequest extends LoginRequest {
   email: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface MessageResponse {
+  message: string;
 }
 
 export interface LeaderboardEntry {

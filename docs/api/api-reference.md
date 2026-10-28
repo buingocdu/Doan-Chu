@@ -22,10 +22,12 @@ related_documents: ["DOC-001", "DOC-003", "DOC-005"]
 - Header: `Authorization: Bearer <token>` — token lấy từ `/auth/login` hoặc `/auth/register`.
 - Subject của token là **username** (từ 2026-10-24; trước đó là email gây lỗi R-01).
 - Token sai/hết hạn không làm request lỗi: `JwtAuthFilter` bỏ qua và xử lý như khách.
+- Token mang claim `ver` = `users.token_version` lúc cấp (từ 2026-10-28). Đổi/đặt lại mật khẩu làm tăng `token_version`, mọi JWT cũ bị coi như khách. Token cũ không có `ver` được coi là version 0.
 - Không có phân quyền theo vai trò (authorities rỗng). Người chơi luôn được xác định từ token, không nhận `userId` từ client.
 
 | Nhóm | Quy tắc (`SecurityConfig`) |
 |------|---------------------------|
+| `/api/auth/change-password` | Cần JWT hợp lệ (khai báo trước `/api/auth/**`) |
 | `/api/auth/**`, `/api/words/**`, `/api/leaderboard/**`, `/api/game/**` | Public (game: có token thì được cộng điểm, không có token = khách) |
 | `/api/history/**`, còn lại | Cần JWT hợp lệ |
 
@@ -34,7 +36,10 @@ related_documents: ["DOC-001", "DOC-003", "DOC-005"]
 | Method | Path | Auth | Controller method | Mô tả |
 |--------|------|------|-------------------|-------|
 | POST | `/api/auth/register` | Public | `AuthController.register` | Đăng ký, trả JWT |
-| POST | `/api/auth/login` | Public | `AuthController.login` | Đăng nhập, trả JWT |
+| POST | `/api/auth/login` | Public | `AuthController.login` | Đăng nhập bằng tên tài khoản hoặc email, trả JWT |
+| POST | `/api/auth/forgot-password` | Public | `AuthController.forgotPassword` | Gửi link đặt lại mật khẩu qua email |
+| POST | `/api/auth/reset-password` | Public (token trong body) | `AuthController.resetPassword` | Đặt mật khẩu mới bằng token từ link |
+| POST | `/api/auth/change-password` | JWT | `AuthController.changePassword` | Đổi mật khẩu, trả JWT mới |
 | GET | `/api/words/random` | Public | `WordController.random` | Từ ngẫu nhiên |
 | GET | `/api/words/random/{level}` | Public | `WordController.randomByLevel` | Từ ngẫu nhiên theo cấp độ |
 | POST | `/api/game/start` | Public / JWT | `GameController.start` | Bắt đầu ván |
@@ -65,7 +70,42 @@ Lỗi 400: `"Username already exists"`, `"Email already exists"`. Không có val
 ### 4.2 `POST /api/auth/login`
 
 Request (`LoginRequest`): `{ "username": "...", "password": "..." }`
+
+Trường `username` nhận **tên tài khoản hoặc email** (từ 2026-10-28): giá trị chứa `@` được tra theo `email` (khớp chính xác, đã trim), ngược lại tra theo `username`. Tên tài khoản hợp lệ không chứa `@` nên không bị nhầm.
+
 Response 200: `AuthResponse` như trên. Lỗi 400 `"Invalid credentials"` (ném `RuntimeException`, không phải 401).
+
+### 4.2a `POST /api/auth/forgot-password`
+
+Request (`ForgotPasswordRequest`): `{ "email": "player1@example.com" }`
+
+Nếu email tồn tại (khớp chính xác, đã trim):
+
+1. Bỏ qua nếu tài khoản đã được gửi link trong 2 phút gần nhất (chống spam, dựa trên `password_reset_tokens.created_at`).
+2. Xóa các token cũ của tài khoản, sinh token ngẫu nhiên 256 bit (base64url), **chỉ lưu SHA-256** vào `password_reset_tokens`, hạn 30 phút.
+3. Gửi email chứa link `${app.frontend-url}/reset-password?token=<token>`. Gửi lỗi thì rollback, token không được lưu.
+
+Mật khẩu hiện tại **không đổi** cho tới khi link được dùng, nên người khác biết email cũng không khóa được tài khoản.
+
+Response 200 (`MessageResponse`) luôn giống nhau dù email có tồn tại hay không (chống dò tài khoản):
+
+```json
+{ "message": "If the email exists, a reset link has been sent" }
+```
+
+Lỗi 400: `"Email is required"`, `"Email service not configured"` (chưa đặt `SPRING_MAIL_HOST`), `"Email sending failed"` (SMTP lỗi).
+
+### 4.2b `POST /api/auth/reset-password`
+
+Request (`ResetPasswordRequest`): `{ "token": "<token từ link>", "newPassword": "..." }`
+Response 200: `{ "message": "Password reset" }`. Token bị xóa sau khi dùng (dùng 1 lần), `token_version` tăng → đăng xuất mọi thiết bị.
+Lỗi 400: `"Invalid or expired reset token"` (sai, hết hạn hoặc đã dùng), `"New password too short"` (< 6 ký tự).
+
+### 4.2c `POST /api/auth/change-password` (JWT)
+
+Request (`ChangePasswordRequest`): `{ "currentPassword": "...", "newPassword": "..." }`
+Response 200: `AuthResponse` với **JWT mới**. `token_version` tăng nên JWT cũ (thiết bị khác) hết hiệu lực; client phải thay token đang lưu.
+Lỗi 400: `"Current password is incorrect"`, `"New password too short"` (< 6 ký tự). Không có JWT/JWT bị thu hồi: 403.
 
 ### 4.3 `GET /api/words/random` và `GET /api/words/random/{level}`
 

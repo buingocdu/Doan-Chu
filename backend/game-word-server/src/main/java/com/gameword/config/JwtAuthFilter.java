@@ -23,7 +23,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private com.gameword.service.UserDetailServiceImpl userDetailService;
+    private com.gameword.repository.UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -39,12 +39,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
 
-        // Token sai, het han hoac user khong ton tai: bo qua, request duoc xu ly nhu khach
+        // Token sai, het han, user khong ton tai hoac token cap truoc lan doi mat khau gan nhat: xu ly nhu khach
         try {
             username = jwtUtil.extractUsername(jwt);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailService.loadUserByUsername(username);
-                if (jwtUtil.validateToken(jwt, username)) {
+                com.gameword.model.User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                UserDetails userDetails = com.gameword.service.UserDetailServiceImpl.toUserDetails(user);
+                if (jwtUtil.validateToken(jwt, username)
+                        && jwtUtil.extractTokenVersion(jwt) == user.getTokenVersion()) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

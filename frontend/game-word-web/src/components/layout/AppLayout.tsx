@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Gamepad2, History, LogIn, LogOut, Trophy, UserPlus } from 'lucide-react';
+import { Gamepad2, History, KeyRound, LogIn, LogOut, Trophy, UserPlus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const navClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? ' active' : ''}`;
@@ -37,6 +37,10 @@ export default function AppLayout() {
               <NavLink to="/history" className={navClass}>
                 <History size={18} aria-hidden="true" />
                 <span className="hide-sm">Lịch sử</span>
+              </NavLink>
+              <NavLink to="/change-password" className={navClass} aria-label="Đổi mật khẩu">
+                <KeyRound size={18} aria-hidden="true" />
+                <span className="hide-sm">Mật khẩu</span>
               </NavLink>
               <button type="button" className="nav-link" onClick={handleLogout} aria-label={`Đăng xuất ${user.username}`}>
                 <LogOut size={18} aria-hidden="true" />
