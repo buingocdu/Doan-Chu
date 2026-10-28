@@ -26,7 +26,7 @@ related_documents: []
 | DOC-001 | [architecture/architecture-overview.md](architecture/architecture-overview.md) | Kiến trúc tổng thể, module, luồng xử lý | Draft | 0.2 | 2026-10-24 |
 | DOC-002 | [api/api-reference.md](api/api-reference.md) | Tham chiếu REST API | Draft | 0.2 | 2026-10-24 |
 | DOC-003 | [database/database-design.md](database/database-design.md) | Schema, ERD, data dictionary, migration | Draft | 0.4 | 2026-10-24 |
-| DOC-004 | [deployment/deployment-runbook.md](deployment/deployment-runbook.md) | Cấu hình môi trường, chạy local, Docker Compose | Draft | 0.1 | 2026-10-24 |
+| DOC-004 | [deployment/deployment-runbook.md](deployment/deployment-runbook.md) | Cấu hình môi trường, chạy local, Docker Compose, Supabase + Render + Vercel | Draft | 0.2 | 2026-10-28 |
 | DOC-006 | [deployment/mobile-build.md](deployment/mobile-build.md) | Build app mobile Android/iOS bằng Capacitor | Draft | 0.1 | 2026-10-24 |
 | DOC-005 | [analysis/project-analysis-report.md](analysis/project-analysis-report.md) | Báo cáo phân tích dự án, lỗi và rủi ro đã phát hiện | Draft | 0.2 | 2026-10-24 |
 | — | [../README.md](../README.md) | Giới thiệu nhanh và hướng dẫn khởi động | — | — | 2026-10-24 |

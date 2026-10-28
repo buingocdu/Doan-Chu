@@ -85,7 +85,11 @@ export default function AuthPage({ mode }: AuthPageProps) {
       <div className="card auth-card">
         <h1>{isLogin ? 'Đăng nhập' : 'Tạo tài khoản'}</h1>
         <p className="muted">
-          {isLogin ? 'Đăng nhập để được cộng điểm và lên bảng xếp hạng.' : 'Đăng ký miễn phí để lưu lịch sử chơi.'}
+          {from === '/leaderboard'
+            ? 'Bảng xếp hạng chỉ dành cho người đã đăng nhập. Khách vẫn chơi được, chỉ không được cộng điểm.'
+            : isLogin
+              ? 'Đăng nhập để được cộng điểm và lên bảng xếp hạng.'
+              : 'Đăng ký miễn phí để lưu lịch sử chơi.'}
         </p>
 
         {formError && (

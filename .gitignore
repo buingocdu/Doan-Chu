@@ -21,3 +21,6 @@ Thumbs.db
 
 # Mobile build env (IP LAN rieng tung may)
 .env.mobile
+
+# Ket noi Supabase (mat khau DB)
+.env.supabase

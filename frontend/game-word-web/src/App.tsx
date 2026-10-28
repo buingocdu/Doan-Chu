@@ -25,7 +25,14 @@ export default function App() {
             <Route index element={<GamePage />} />
             <Route path="login" element={<AuthPage key="login" mode="login" />} />
             <Route path="register" element={<AuthPage key="register" mode="register" />} />
-            <Route path="leaderboard" element={<LeaderboardPage />} />
+            <Route
+              path="leaderboard"
+              element={
+                <ProtectedRoute>
+                  <LeaderboardPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="history"
               element={

@@ -1,0 +1,34 @@
+# Render Blueprint: backend Spring Boot (goi Free) ket noi Supabase. Xem docs/deployment/deployment-runbook.md muc 11.
+# Render -> New -> Blueprint -> chon repo nay; cac bien sync:false se duoc hoi khi tao.
+services:
+  - type: web
+    name: game-word-backend
+    runtime: docker
+    plan: free
+    # Vung gan Supabase (eu-west-1, Ireland) nhat trong cac vung Render
+    region: frankfurt
+    branch: main
+    dockerContext: ./backend/game-word-server
+    dockerfilePath: ./backend/game-word-server/Dockerfile
+    healthCheckPath: /api/leaderboard
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # jdbc:postgresql://aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      # postgres.<project-ref>
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      # Khoa HMAC >= 32 byte; Render sinh chuoi ngau nhien du dai
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SERVER_FORWARD_HEADERS_STRATEGY
+        value: native
+      # Goi Free cua Supabase gioi han so ket noi; goi Free cua Render chi co 512 MB RAM
+      - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+        value: "3"
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -Xss512k -XX:+ExitOnOutOfMemoryError"
