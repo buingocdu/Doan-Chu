@@ -51,22 +51,48 @@ class GameServiceTextTest {
     }
 
     @Test
-    void sameLetterWrongMarkAtSamePositionIsBlue() {
-        // O so voi Ô, A so voi À: dung chu goc, sai dau
-        assertEquals("GGUGGGU", colors("ngoi nha", "NGÔI NHÀ"));
+    void withoutToneKeepsLetterMarks() {
+        assertEquals('A', GameService.withoutTone('á'));
+        assertEquals('Ă', GameService.withoutTone('Ặ'));
+        assertEquals('Â', GameService.withoutTone('Ấ'));
+        assertEquals('Ê', GameService.withoutTone('Ề'));
+        assertEquals('Ô', GameService.withoutTone('Ổ'));
+        assertEquals('Ơ', GameService.withoutTone('Ỡ'));
+        assertEquals('Ư', GameService.withoutTone('Ự'));
+        assertEquals('Đ', GameService.withoutTone('đ'));
+    }
+
+    @Test
+    void sameLetterWrongToneAtSamePositionIsBlue() {
+        // Ố so voi Ô, Á so voi À: dung chu cai, chi sai dau thanh
         assertEquals("GGUGGGU", colors("ngối nhá", "NGÔI NHÀ"));
-        // D so voi Đ cung la sai dau
-        assertEquals("UGGGG", colors("dường", "ĐƯỜNG"));
+        assertEquals("GGUGG", colors("đượng", "ĐƯỜNG"));
+    }
+
+    @Test
+    void differentVowelLetterIsNotBlue() {
+        // O khac Ô, A khac Ă/Â, E khac Ê, U khac Ư: khong phai sai dau ma la sai chu
+        assertEquals("GGXGGGU", colors("ngoi nha", "NGÔI NHÀ"));
+        assertEquals("X", colors("ă", "Â"));
+        assertEquals("X", colors("a", "Ấ"));
+        assertEquals("X", colors("ê", "É"));
+        assertEquals("X", colors("ơ", "Ộ"));
+        assertEquals("XGGG", colors("uờng", "ƯỜNG"));
+        // D va Đ la hai chu cai khac nhau
+        assertEquals("XGGGG", colors("dường", "ĐƯỜNG"));
     }
 
     @Test
     void letterElsewhereIsYellowAndEachTargetLetterCountsOnce() {
         // N o vi tri 1 va 2 bi doi cho: ca hai deu co trong tu -> vang
-        assertEquals("YYUGGGU", colors("gnoi nha", "NGÔI NHÀ"));
+        assertEquals("YYGGGGU", colors("gnôi nha", "NGÔI NHÀ"));
         // H duy nhat cua dap an da xanh o vi tri 6 -> H o vi tri 1 la xam
-        assertEquals("XGUGGGU", colors("hgoi nha", "NGÔI NHÀ"));
-        // Ô o sai vi tri van tinh vang theo chu goc
-        assertEquals("YXXXGGU", colors("ôxxx nha", "NGÔI NHÀ").replace("XXX", "XXX"));
+        assertEquals("XGGGGGU", colors("hgôi nha", "NGÔI NHÀ"));
+        // Ố o sai vi tri van tinh vang (bo qua dau thanh), O thi khong vi O khac Ô
+        assertEquals("YXXXGGU", colors("ốxxx nhá", "NGÔI NHÀ"));
+        assertEquals("XXXXGGU", colors("oxxx nhá", "NGÔI NHÀ"));
+        // A o vi tri cua Â khong duoc vang nho chinh o do
+        assertEquals("GXX", colors("cax", "CÂY"));
     }
 
     @Test

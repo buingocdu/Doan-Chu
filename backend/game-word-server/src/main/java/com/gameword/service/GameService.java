@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -230,8 +231,9 @@ public class GameService {
     /**
      * Cham tung o (moi chu cai co dau la mot o), moi chu cua dap an chi duoc tinh cho mot o:
      * 1. GREEN  - dung chu va dung dau tai vi tri do (Ô = Ô)
-     * 2. BLUE   - cung vi tri, dung chu goc nhung sai dau (O/Ố so voi Ô, D so voi Đ)
-     * 3. YELLOW - chu goc co trong tu o vi tri khac chua duoc tinh
+     * 2. BLUE   - cung vi tri, dung chu cai nhung sai dau thanh (Ố so voi Ô). A/Ă/Â, E/Ê, O/Ô/Ơ, U/Ư, D/Đ
+     *             la cac chu cai khac nhau nen O so voi Ô KHONG phai BLUE
+     * 3. YELLOW - chu cai (bo qua dau thanh) co trong tu o vi tri khac chua duoc tinh
      * 4. BLACK  - con lai
      */
     static List<CellResult> evaluateGuess(List<Character> guess, List<Character> target) {
@@ -247,7 +249,7 @@ public class GameService {
         }
         for (int i = 0; i < n; i++) {
             if (colors[i] == null && i < guess.size()
-                    && baseLetter(guess.get(i)).equals(baseLetter(target.get(i)))) {
+                    && withoutTone(guess.get(i)) == withoutTone(target.get(i))) {
                 colors[i] = "BLUE";
                 used[i] = true;
             }
@@ -260,9 +262,9 @@ public class GameService {
             if (i >= guess.size()) {
                 continue;
             }
-            String base = baseLetter(guess.get(i));
+            char letter = withoutTone(guess.get(i));
             for (int j = 0; j < n; j++) {
-                if (!used[j] && baseLetter(target.get(j)).equals(base)) {
+                if (!used[j] && withoutTone(target.get(j)) == letter) {
                     colors[i] = "YELLOW";
                     used[j] = true;
                     break;
@@ -317,6 +319,17 @@ public class GameService {
             .replaceAll("\\p{M}", "")
             .toUpperCase(Locale.ROOT);
         return base.length() == 1 && base.charAt(0) >= 'A' && base.charAt(0) <= 'Z' ? base : "";
+    }
+
+    // Dau thanh: huyen, sac, nga, hoi, nang. Giu dau chu (trang, mu, moc) vi Ă/Â/Ê/Ô/Ơ/Ư la chu cai rieng
+    private static final Pattern TONE_MARKS =
+        Pattern.compile("[\u0300\u0301\u0303\u0309\u0323]");
+
+    // Chu cai in hoa bo dau thanh, giu dau chu: Ấ -> Â, Ợ -> Ơ, Á -> A, Đ -> Đ
+    static char withoutTone(char c) {
+        String nfd = Normalizer.normalize(String.valueOf(c), Normalizer.Form.NFD);
+        String letter = Normalizer.normalize(TONE_MARKS.matcher(nfd).replaceAll(""), Normalizer.Form.NFC);
+        return letter.toUpperCase(Locale.ROOT).charAt(0);
     }
 
     // Ghep chu hien thi theo tung tieng: [T,I,Ế,N,G,A,N,H] + [5,3] -> "TIẾNG ANH"

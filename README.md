@@ -63,7 +63,7 @@ Thông tin kết nối DB local nằm trong `backend/game-word-server/src/main/r
 
 - Mỗi ván có một từ ghép (ví dụ `MAYTINH` = `MAY` + `TINH`), người chơi biết độ dài từ.
 - Tối đa 10 lượt đoán.
-- Màu phản hồi: **xanh lá** — đúng vị trí; **vàng** — có trong từ nhưng sai vị trí; **xanh dương** — nguyên âm đúng gốc nhưng sai dấu; **đen** — không có trong từ.
+- Màu phản hồi: **xanh lá** — đúng vị trí; **vàng** — có trong từ nhưng sai vị trí; **xanh dương** — đúng chữ cái, đúng vị trí nhưng sai dấu thanh (A/Ă/Â, E/Ê, O/Ô/Ơ, U/Ư, D/Đ là các chữ cái khác nhau); **đen** — không có trong từ.
 - Đoán đúng ở lượt *n* được tính điểm từ 100 (lượt 1) giảm dần; người đã đăng nhập được cộng điểm vào bảng xếp hạng.
 
 Chi tiết cài đặt và giới hạn: [Kiến trúc §7](docs/architecture/architecture-overview.md#7-luật-chơi-được-cài-đặt--current).

@@ -678,8 +678,43 @@ nav {
   padding: 1rem 1.1rem;
 }
 
-.rules h2 {
+.rules-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+.rules h2 {
+  margin: 0;
+}
+
+.rules-toggle {
+  flex-shrink: 0;
+}
+
+.rules-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+}
+
+/* Man hinh 1 cot (dien thoai, tablet doc): cho thu gon luat choi de danh cho cho bang choi */
+@media (max-width: 959px) {
+  .rules.is-collapsed .rules-header {
+    margin-bottom: 0;
+  }
+
+  .rules.is-collapsed .rules-list {
+    display: none;
+  }
+}
+
+/* Desktop: luat choi nam cot ben, luon hien */
+@media (min-width: 960px) {
+  .rules-toggle {
+    display: none;
+  }
 }
 
 .rules-list {

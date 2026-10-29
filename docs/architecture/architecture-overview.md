@@ -124,7 +124,7 @@ Màu phản hồi (`GameService.evaluateGuess`):
 |-----|-----------|
 | `GREEN` | Ký tự đúng vị trí |
 | `YELLOW` | Ký tự có trong từ nhưng sai vị trí |
-| `BLUE` | Nguyên âm có trong từ, sai vị trí, và từ đích có nguyên âm cùng gốc nhưng khác dấu. Do từ trong kho lưu không dấu, trường hợp này thực tế hiếm khi xảy ra |
+| `BLUE` | Cùng vị trí, đúng chữ cái nhưng sai dấu thanh (sắc, huyền, hỏi, ngã, nặng). A/Ă/Â, E/Ê, O/Ô/Ơ, U/Ư, D/Đ là các chữ cái khác nhau: Ố so với Ô là `BLUE`, O so với Ô thì không |
 | `BLACK` | Ký tự không có trong từ |
 
 Công thức điểm (`computeScore`): `round(min + (1 - (attempt-1)/max) * (max_score - min_score))`, kẹp trong `[min, max]`. Với mặc định: lượt 1 = 100 điểm, lượt 10 = 19 điểm. Với người đã đăng nhập, điểm được cộng vào `users.total_score` (thắng) và `games_played` / `games_won` được cập nhật; khách chỉ thấy điểm trong response.

@@ -182,7 +182,7 @@ export function formatGuess(letters: string, parts: number[]): string {
 
 export const COLOR_LABELS: Record<CellColor, string> = {
   GREEN: 'đúng chữ, đúng dấu, đúng vị trí',
-  BLUE: 'đúng chữ, đúng vị trí nhưng sai dấu',
+  BLUE: 'đúng chữ cái, đúng vị trí nhưng sai dấu thanh',
   YELLOW: 'có trong từ nhưng sai vị trí',
   BLACK: 'không có trong từ',
 };
