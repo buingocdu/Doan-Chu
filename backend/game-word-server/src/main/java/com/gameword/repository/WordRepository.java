@@ -20,4 +20,7 @@ public interface WordRepository extends JpaRepository<Word, Long> {
            nativeQuery = true)
     Optional<Word> findRandomByLevelNotIn(@Param("level") Integer level, @Param("excludedIds") List<Long> excludedIds);
 
+    @Query("SELECT DISTINCT w.level FROM Word w WHERE w.active = true")
+    List<Integer> findActiveLevels();
+
 }

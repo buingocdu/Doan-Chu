@@ -6,8 +6,11 @@ import com.gameword.repository.WordRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Transactional(readOnly = true)
@@ -19,20 +22,21 @@ public class WordService {
         this.wordRepository = wordRepository;
     }
 
+    // Boc ngau nhien cap do truoc (moi cap do co xac suat nhu nhau) roi moi boc tu trong cap do do.
+    // Boc deu tren ca kho thi gan nhu chi ra cap 4-5 (khoang 95% so tu).
     public WordResponse getRandomWord(List<Long> excludedIds) {
-        Optional<Word> word = wordRepository.findRandomNotIn(nonEmpty(excludedIds));
-        if (word.isEmpty()) {
-            word = wordRepository.findRandomNotIn(nonEmpty(List.of()));
+        List<Integer> levels = new ArrayList<>(wordRepository.findActiveLevels());
+        Collections.shuffle(levels, ThreadLocalRandom.current());
+        // Cap do da choi het tu (nam trong excludedIds) thi thu cap do khac
+        for (Integer level : levels) {
+            Optional<Word> word = wordRepository.findRandomByLevelNotIn(level, nonEmpty(excludedIds));
+            if (word.isPresent()) {
+                return toResponse(word.get());
+            }
         }
-        Word w = word.orElseThrow(() -> new RuntimeException("No words available"));
-        return WordResponse.builder()
-            .id(w.getId())
-            .value(w.getValue())
-            .phrase(w.getPhrase())
-            .wordLength(w.getValue().length())
-            .level(w.getLevel())
-            .maxAttempts(null)
-            .build();
+        Word w = wordRepository.findRandomNotIn(nonEmpty(List.of()))
+            .orElseThrow(() -> new RuntimeException("No words available"));
+        return toResponse(w);
     }
 
     public WordResponse getRandomWordByLevel(Integer level, List<Long> excludedIds) {
@@ -41,6 +45,15 @@ public class WordService {
             word = wordRepository.findRandomByLevelNotIn(level, nonEmpty(List.of()));
         }
         Word w = word.orElseThrow(() -> new RuntimeException("No words available for level " + level));
+        return toResponse(w);
+    }
+
+    public Word getWord(Long id) {
+        return wordRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Word not found"));
+    }
+
+    private WordResponse toResponse(Word w) {
         return WordResponse.builder()
             .id(w.getId())
             .value(w.getValue())
@@ -49,11 +62,6 @@ public class WordService {
             .level(w.getLevel())
             .maxAttempts(null)
             .build();
-    }
-
-    public Word getWord(Long id) {
-        return wordRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Word not found"));
     }
 
     private List<Long> nonEmpty(List<Long> ids) {
