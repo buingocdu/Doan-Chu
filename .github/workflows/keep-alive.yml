@@ -1,0 +1,21 @@
+# Goi backend Render moi 10 phut de goi Free khong ngu (ngu sau 15 phut khong co truy cap)
+# va Supabase Free co truy cap deu dan (tam dung sau 1 tuan khong dung).
+# GitHub co the chay lich tre vai phut luc cao diem; tat lich neu repo khong co commit trong 60 ngay.
+name: Keep backend awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /api/leaderboard
+        # Lan dau danh thuc co the mat ~1 phut nen cho toi 120s va thu lai
+        run: |
+          curl -fsS --max-time 120 --retry 3 --retry-delay 10 --retry-all-errors \
+            -o /dev/null -w "HTTP %{http_code} trong %{time_total}s\n" \
+            https://game-word-backend.onrender.com/api/leaderboard
