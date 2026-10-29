@@ -24,3 +24,7 @@ Thumbs.db
 
 # Ket noi Supabase (mat khau DB)
 .env.supabase
+
+# Trien khai VPS: bien moi truong server va du lieu xuat tu DB
+.env.prod
+deploy/restore/

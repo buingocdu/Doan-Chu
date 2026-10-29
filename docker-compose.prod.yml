@@ -1,0 +1,74 @@
+# Trien khai tren VPS dung chung, sau cong vao Caddy (repo dong-y: deploy/edge) lo HTTPS va ten mien.
+# KHONG mo cong nao ra host (cong Docker mo ra se bo qua tuong lua ufw); web noi vao mang "edge" voi alias doanchu-web.
+#   docker network create edge   # mot lan, neu chua co
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Xem docs/deployment/vps-deploy.md
+name: doanchu
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: game_word_db
+      POSTGRES_USER: gameword
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Dat DB_PASSWORD trong .env.prod}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./deploy/restore:/restore:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gameword -d game_word_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    build: ./backend/game-word-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/game_word_db
+      SPRING_DATASOURCE_USERNAME: gameword
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Dat JWT_SECRET trong .env.prod}
+      # Frontend va API cung ten mien (Nginx proxy /api) nen chi can cho phep chinh dia chi web
+      CORS_ALLOWED_ORIGINS: ${SITE_URL:?Dat SITE_URL trong .env.prod}
+      FRONTEND_URL: ${SITE_URL}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      # Tin X-Forwarded-For tu Nginx/Caddy (mang noi bo) de lay IP that cua client
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
+      JAVA_TOOL_OPTIONS: "-Xmx${BACKEND_HEAP:-384m} -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+    logging: *logging
+
+  web:
+    build: ./frontend/game-word-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      default:
+      edge:
+        aliases:
+          - doanchu-web
+    logging: *logging
+
+networks:
+  edge:
+    external: true
+    name: edge
+
+volumes:
+  db_data:
