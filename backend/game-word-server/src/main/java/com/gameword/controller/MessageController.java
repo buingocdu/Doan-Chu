@@ -15,7 +15,6 @@ import java.util.List;
 // Tin nhan rieng giua ban be
 @RestController
 @RequestMapping("/api/messages")
-@CrossOrigin(origins = "*")
 public class MessageController {
 
     private final ChatService chatService;

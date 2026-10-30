@@ -20,7 +20,6 @@ import java.util.List;
 // Phong choi nhieu nguoi; tat ca endpoint yeu cau JWT (SecurityConfig: anyRequest().authenticated())
 @RestController
 @RequestMapping("/api/rooms")
-@CrossOrigin(origins = "*")
 public class RoomController {
 
     private final RoomService roomService;

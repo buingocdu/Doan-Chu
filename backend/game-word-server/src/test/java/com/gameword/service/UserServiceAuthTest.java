@@ -3,6 +3,7 @@ package com.gameword.service;
 import com.gameword.config.JwtUtil;
 import com.gameword.dto.ChangePasswordRequest;
 import com.gameword.dto.LoginRequest;
+import com.gameword.dto.RegisterRequest;
 import com.gameword.dto.ResetPasswordRequest;
 import com.gameword.model.PasswordResetToken;
 import com.gameword.model.User;
@@ -44,6 +45,30 @@ class UserServiceAuthTest {
         when(repo.findByUsername("player1")).thenReturn(Optional.of(user));
         when(repo.findByEmail("p1@example.com")).thenReturn(Optional.of(user));
         when(repo.findById(1L)).thenReturn(Optional.of(user));
+    }
+
+    @Test
+    void registerValidatesInputOnServer() {
+        assertEquals("Invalid username", registerError("a@b", "secret1", "n@x.vn"));
+        assertEquals("Invalid username", registerError("ab", "secret1", "n@x.vn"));
+        assertEquals("Invalid username", registerError("x".repeat(31), "secret1", "n@x.vn"));
+        assertEquals("Invalid email", registerError("new_user", "secret1", "khong-phai-email"));
+        assertEquals("Invalid email", registerError("new_user", "secret1", "a".repeat(250) + "@x.vn"));
+        assertEquals("Invalid password", registerError("new_user", "123", "n@x.vn"));
+        assertEquals("Password too long", registerError("new_user", "x".repeat(73), "n@x.vn"));
+        verify(repo, never()).save(any());
+
+        when(repo.save(any())).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            u.setId(9L);
+            return u;
+        });
+        assertEquals("new_user", service.register(new RegisterRequest(" new_user ", "secret1", " n@x.vn ")).getUsername());
+    }
+
+    private String registerError(String username, String password, String email) {
+        return assertThrows(RuntimeException.class,
+            () -> service.register(new RegisterRequest(username, password, email))).getMessage();
     }
 
     @Test

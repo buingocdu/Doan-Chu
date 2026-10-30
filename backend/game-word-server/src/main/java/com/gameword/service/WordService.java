@@ -64,7 +64,14 @@ public class WordService {
             .build();
     }
 
-    private List<Long> nonEmpty(List<Long> ids) {
-        return ids == null || ids.isEmpty() ? List.of(-1L) : ids;
+    // Toi da so tu loai tru gui tu client (endpoint cong khai): danh sach qua dai lam truy van NOT IN rat nang
+    static final int MAX_EXCLUDED = 200;
+
+    // Rong -> [-1] (NOT IN () khong hop le); qua dai -> giu cac tu choi gan nhat (cuoi danh sach)
+    static List<Long> nonEmpty(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of(-1L);
+        }
+        return ids.size() > MAX_EXCLUDED ? ids.subList(ids.size() - MAX_EXCLUDED, ids.size()) : ids;
     }
 }

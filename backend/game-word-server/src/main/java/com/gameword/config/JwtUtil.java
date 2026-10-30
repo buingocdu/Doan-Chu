@@ -2,6 +2,7 @@ package com.gameword.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,16 @@ public class JwtUtil {
 
     @Value("${jwt.expiration:86400000}")
     private Long expiration;
+
+    // HMAC-SHA256 can khoa >= 32 byte; khoa ngan/thieu thi dung khoi dong thay vi chay voi khoa yeu
+    static final int MIN_SECRET_BYTES = 32;
+
+    @PostConstruct
+    void checkSecret() {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("jwt.secret (JWT_SECRET) phai dai it nhat " + MIN_SECRET_BYTES + " byte");
+        }
+    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
