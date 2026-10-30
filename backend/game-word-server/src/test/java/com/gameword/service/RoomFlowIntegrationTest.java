@@ -40,6 +40,8 @@ class RoomFlowIntegrationTest {
     @Autowired
     private ChatService chatService;
     @Autowired
+    private WordService wordService;
+    @Autowired
     private JdbcTemplate jdbc;
 
     private static EmbeddedPostgres startPostgres() {
@@ -167,6 +169,29 @@ class RoomFlowIntegrationTest {
         assertEquals("FINISHED", state.getMatch().getStatus());
         assertNotEquals(current, state.getMatch().getWinnerId());
         assertTrue(state.getMessages().stream().anyMatch(m -> m.getContent().contains("không có trong từ điển")));
+    }
+
+    @Test
+    void chainOnlyWordsAreAcceptedInChainButNeverAnswers() {
+        Integer chainOnly = jdbc.queryForObject("SELECT COUNT(*) FROM words WHERE chain_only", Integer.class);
+        assertTrue(chainOnly > 3000, "da nap tu bo sung Wiktionary: " + chainOnly);
+        // Khong lam dap an Doan chu: cap do va boc ngau nhien deu bo qua chain_only
+        for (int i = 0; i < 20; i++) {
+            Long id = wordService.getRandomWord(List.of()).getId();
+            assertEquals(Boolean.FALSE, jdbc.queryForObject("SELECT chain_only FROM words WHERE id = ?", Boolean.class, id));
+        }
+
+        Long a = newUser();
+        Long b = newUser();
+        String code = roomService.create(a, "WORD_CHAIN").getCode();
+        roomService.join(b, code);
+        RoomStateResponse state = roomService.start(a, code, "WORD_CHAIN");
+        // Dat tu truoc la "bức tường" de nguoi dang toi luot noi bang tu chi co trong nguon bo sung
+        jdbc.update("UPDATE matches SET last_word = 'bức tường' WHERE id = ?", state.getMatch().getId());
+        Long current = state.getMatch().getCurrentUserId();
+        state = roomService.chain(current, code, "tường bao", null);
+        assertEquals("PLAYING", state.getMatch().getStatus());
+        assertEquals("tường bao", state.getMatch().getChain().get(state.getMatch().getChain().size() - 1).getWord());
     }
 
     @Test

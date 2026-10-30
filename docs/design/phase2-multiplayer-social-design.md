@@ -327,3 +327,4 @@ Mỗi mốc là một nhánh/PR riêng, có test, deploy được độc lập.
 |-----------|------|-------|
 | 0.1 | 2026-10-30 | Khởi tạo bản thiết kế để review |
 | 0.2 | 2026-10-30 | Triển khai M1-M4; lời mời vào phòng không bị giới hạn chống spam (chỉ tin nhắn văn bản) |
+| 0.3 | 2026-10-30 | Nối từ: thêm 3.238 từ 2 tiếng có mục "Tiếng Việt" trên Wiktionary (migration v1.8.0, `words.chain_only = true`, chỉ dùng kiểm tra nối, không làm đáp án/từ mở đầu); tổng ~48.150 từ |

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- chain_only = true: tu chi dung de kiem tra Noi tu, khong lam dap an Doan chu / tu mo dau Noi tu (it gap) -->
+    <changeSet id="22" author="claude">
+        <addColumn tableName="words">
+            <column name="chain_only" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- 3.238 tu 2 tieng co muc "Tieng Viet" tren Wiktionary nhung chua co trong Viet74K, kem giai nghia.
+         Nguon: Wiktionary tieng Viet (vi.wiktionary.org), giay phep CC BY-SA 4.0.
+         Sinh bang tools/extract_chain_words.py tu ban dump viwiktionary-latest-pages-articles (30/10/2026).
+         ON CONFLICT DO NOTHING: khong dong toi tu da co (giu level/giai nghia hien tai). -->
+    <changeSet id="23" author="claude">
+        <createTable tableName="words_chain_import">
+            <column name="value" type="VARCHAR(255)"/>
+            <column name="part1" type="VARCHAR(255)"/>
+            <column name="part2" type="VARCHAR(255)"/>
+            <column name="phrase" type="VARCHAR(255)"/>
+            <column name="definition" type="VARCHAR(1000)"/>
+        </createTable>
+        <loadData tableName="words_chain_import" file="words-chain-extra.csv" relativeToChangelogFile="true"
+                  encoding="UTF-8" separator=",">
+            <column name="value" type="STRING"/>
+            <column name="part1" type="STRING"/>
+            <column name="part2" type="STRING"/>
+            <column name="phrase" type="STRING"/>
+            <column name="definition" type="STRING"/>
+        </loadData>
+        <sql>
+            INSERT INTO words (value, part1, part2, phrase, definition, level, active, chain_only, created_at)
+            SELECT value, part1, part2, phrase, definition, 5, true, true, CURRENT_TIMESTAMP FROM words_chain_import
+            ON CONFLICT (phrase) DO NOTHING
+        </sql>
+        <dropTable tableName="words_chain_import"/>
+    </changeSet>
+
+</databaseChangeLog>

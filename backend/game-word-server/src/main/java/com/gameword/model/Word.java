@@ -44,6 +44,10 @@ public class Word {
     @Column(nullable = false)
     private Boolean active = true;
 
+    // Tu bo sung tu Wiktionary chi dung cho Noi tu (v1.8.0); khong lam dap an Doan chu
+    @Column(name = "chain_only", nullable = false)
+    private Boolean chainOnly = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
