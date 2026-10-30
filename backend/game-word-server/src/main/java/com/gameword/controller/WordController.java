@@ -9,7 +9,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/words")
-@CrossOrigin(origins = "*")
 public class WordController {
 
     private final WordService wordService;

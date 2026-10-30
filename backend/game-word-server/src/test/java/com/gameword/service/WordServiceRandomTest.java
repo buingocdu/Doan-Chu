@@ -65,4 +65,14 @@ class WordServiceRandomTest {
             assertEquals(2, service.getRandomWord(List.of(10L)).getLevel());
         }
     }
+
+    // Danh sach loai tru tu client bi cat con 200 phan tu gan nhat (chong truy van NOT IN qua lon)
+    @Test
+    void excludedIdsAreCapped() {
+        List<Long> many = java.util.stream.LongStream.rangeClosed(1, 5000).boxed().toList();
+        List<Long> capped = WordService.nonEmpty(many);
+        assertEquals(WordService.MAX_EXCLUDED, capped.size());
+        assertEquals(5000L, capped.get(capped.size() - 1));
+        assertEquals(List.of(-1L), WordService.nonEmpty(List.of()));
+    }
 }

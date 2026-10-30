@@ -794,6 +794,41 @@ nav {
   font: inherit;
 }
 
+/* Ô mật khẩu: nút con mắt nằm trong ô, bên phải */
+.field-password {
+  position: relative;
+}
+
+.field-password input {
+  padding-right: 2.75rem;
+}
+
+.field-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.field-toggle:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.field-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
 .field input[aria-invalid='true'] {
   border-color: var(--danger);
 }

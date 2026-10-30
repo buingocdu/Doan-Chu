@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/history")
-@CrossOrigin(origins = "*")
 public class HistoryController {
 
     private final HistoryService historyService;

@@ -23,11 +23,17 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Service
 public class UserService {
 
     private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_PASSWORD_BYTES = 72;
+    private static final int MAX_EMAIL_LENGTH = 254;
+    // Khong cho '@' trong ten tai khoan: dang nhap dung '@' de phan biet email
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.]{3,30}$");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final long RESET_TOKEN_VALID_MINUTES = 30;
     // Chong spam: moi tai khoan chi duoc gui 1 link trong khoang nay
     private static final long RESET_COOLDOWN_MINUTES = 2;
@@ -51,17 +57,27 @@ public class UserService {
         this.frontendUrl = frontendUrl.replaceAll("/+$", "");
     }
 
+    // Kiem tra o backend (khong tin frontend): giong quy tac trong frontend features/auth/utils/validation.ts
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        String username = request.getUsername() == null ? "" : request.getUsername().trim();
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        if (!USERNAME_PATTERN.matcher(username).matches()) {
+            throw new RuntimeException("Invalid username");
+        }
+        if (email.length() > MAX_EMAIL_LENGTH || !EMAIL_PATTERN.matcher(email).matches()) {
+            throw new RuntimeException("Invalid email");
+        }
+        checkPasswordLength(request.getPassword(), "Invalid password");
+        if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("Username already exists");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already exists");
         }
         User user = User.builder()
-            .username(request.getUsername())
+            .username(username)
             .password(passwordEncoder.encode(request.getPassword()))
-            .email(request.getEmail())
+            .email(email)
             .totalScore(0)
             .gamesPlayed(0)
             .gamesWon(0)
@@ -140,12 +156,20 @@ public class UserService {
 
     // Doi hash va tang token_version de dang xuat moi phien cu
     private void updatePassword(User user, String newPassword) {
-        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
-            throw new RuntimeException("New password too short");
-        }
+        checkPasswordLength(newPassword, "New password too short");
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
+    }
+
+    // Toi thieu 6 ky tu; toi da 72 byte vi BCrypt bo qua phan sau 72 byte (mat khau dai hon se bi cat ngam)
+    private static void checkPasswordLength(String password, String tooShortMessage) {
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            throw new RuntimeException(tooShortMessage);
+        }
+        if (password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
+            throw new RuntimeException("Password too long");
+        }
     }
 
     private AuthResponse toAuthResponse(User user) {

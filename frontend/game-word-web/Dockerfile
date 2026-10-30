@@ -12,5 +12,7 @@ RUN npm run build
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Duoi .inc de khong bi nap tu dong nhu file .conf trong conf.d
+COPY nginx-proxy-backend.inc /etc/nginx/conf.d/proxy-backend.inc
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

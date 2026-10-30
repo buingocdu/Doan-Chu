@@ -86,6 +86,11 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Email already exists': 'Email đã được sử dụng.',
   'Game not found': 'Ván chơi không còn hợp lệ. Hãy bắt đầu ván mới.',
   'No words available': 'Kho từ đang trống.',
+  'Invalid username': 'Tên tài khoản dài 3–30 ký tự, chỉ gồm chữ không dấu, số, dấu chấm hoặc gạch dưới.',
+  'Invalid email': 'Email không hợp lệ.',
+  'Invalid password': 'Mật khẩu cần ít nhất 6 ký tự.',
+  'Password too long': 'Mật khẩu quá dài (tối đa 72 ký tự không dấu).',
+  'Invalid request': 'Yêu cầu không hợp lệ.',
 };
 
 function isApiErrorBody(value: unknown): value is ApiErrorBody {
@@ -99,6 +104,8 @@ export function getHttpStatus(error: unknown): number | undefined {
 export function getErrorMessage(error: unknown, fallback = 'Đã có lỗi xảy ra. Vui lòng thử lại.'): string {
   if (!axios.isAxiosError(error)) return fallback;
   if (!error.response) return 'Không kết nối được máy chủ. Kiểm tra mạng và thử lại.';
+  // Nginx giới hạn tần suất (chống dò mật khẩu / spam); body là HTML nên kiểm tra mã trước
+  if (error.response.status === 429) return 'Bạn thao tác quá nhanh. Vui lòng đợi một chút rồi thử lại.';
   const body: unknown = error.response.data;
   if (isApiErrorBody(body)) {
     if (KNOWN_MESSAGES[body.message]) return KNOWN_MESSAGES[body.message];
