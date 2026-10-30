@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Phong choi nhieu nguoi (Phase 2, DOC-007). version tang moi khi phong thay doi de polling re;
+         deadline_at = han su kien hen gio gan nhat cua van (het luot / het gio) -->
+    <changeSet id="15" author="claude">
+        <createTable tableName="rooms">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="code" type="VARCHAR(8)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_rooms_code"/>
+            </column>
+            <column name="host_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_rooms_host" referencedTableName="users" referencedColumnNames="id"/>
+            </column>
+            <column name="game_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="current_match_id" type="BIGINT"/>
+            <column name="version" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deadline_at" type="TIMESTAMP"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="16" author="claude">
+        <createTable tableName="room_members">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="room_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_room_members_room" referencedTableName="rooms"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_room_members_user" referencedTableName="users"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="joined_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="room_members" columnNames="room_id, user_id" constraintName="uk_room_members"/>
+        <createIndex tableName="room_members" indexName="idx_room_members_user">
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Van choi trong phong. word_id/ends_at: dua doan chu. current_user_id/turn_deadline/last_word: noi tu -->
+    <changeSet id="17" author="claude">
+        <createTable tableName="matches">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="room_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_matches_room" referencedTableName="rooms"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="game_type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="word_id" type="BIGINT">
+                <constraints foreignKeyName="fk_matches_word" referencedTableName="words" referencedColumnNames="id"/>
+            </column>
+            <column name="winner_id" type="BIGINT">
+                <constraints foreignKeyName="fk_matches_winner" referencedTableName="users" referencedColumnNames="id"/>
+            </column>
+            <column name="current_user_id" type="BIGINT"/>
+            <column name="turn_deadline" type="TIMESTAMP"/>
+            <column name="ends_at" type="TIMESTAMP"/>
+            <column name="last_word" type="VARCHAR(255)"/>
+            <column name="started_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="finished_at" type="TIMESTAMP"/>
+        </createTable>
+        <createIndex tableName="matches" indexName="idx_matches_room">
+            <column name="room_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="18" author="claude">
+        <createTable tableName="match_players">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="match_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_match_players_match" referencedTableName="matches"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_match_players_user" referencedTableName="users"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="turn_order" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eliminated" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="eliminated_reason" type="VARCHAR(20)"/>
+            <column name="attempts" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="solved_at" type="TIMESTAMP"/>
+        </createTable>
+        <addUniqueConstraint tableName="match_players" columnNames="match_id, user_id" constraintName="uk_match_players"/>
+    </changeSet>
+
+    <!-- Nuoc di: doan chu (content = cum doan, result = mau CSV) hoac noi tu (content = tu; user_id null = tu mo dau) -->
+    <changeSet id="19" author="claude">
+        <createTable tableName="match_moves">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="match_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_match_moves_match" referencedTableName="matches"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints foreignKeyName="fk_match_moves_user" referencedTableName="users"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="content" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="result" type="VARCHAR(255)"/>
+            <column name="correct" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="match_moves" indexName="idx_match_moves_match">
+            <column name="match_id"/>
+            <column name="id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Tin nhan: phong (room_id) hoac rieng (recipient_id). sender_id null = tin he thong -->
+    <changeSet id="20" author="claude">
+        <createTable tableName="chat_messages">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="room_id" type="BIGINT">
+                <constraints foreignKeyName="fk_chat_messages_room" referencedTableName="rooms"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="sender_id" type="BIGINT">
+                <constraints foreignKeyName="fk_chat_messages_sender" referencedTableName="users"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="recipient_id" type="BIGINT">
+                <constraints foreignKeyName="fk_chat_messages_recipient" referencedTableName="users"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="type" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="VARCHAR(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="read_at" type="TIMESTAMP"/>
+        </createTable>
+        <createIndex tableName="chat_messages" indexName="idx_chat_messages_room">
+            <column name="room_id"/>
+            <column name="id"/>
+        </createIndex>
+        <createIndex tableName="chat_messages" indexName="idx_chat_messages_recipient">
+            <column name="recipient_id"/>
+            <column name="sender_id"/>
+            <column name="id"/>
+        </createIndex>
+        <createIndex tableName="chat_messages" indexName="idx_chat_messages_sender">
+            <column name="sender_id"/>
+            <column name="recipient_id"/>
+            <column name="id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

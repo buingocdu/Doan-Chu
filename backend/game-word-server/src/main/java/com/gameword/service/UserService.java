@@ -21,8 +21,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.HexFormat;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -184,6 +189,16 @@ public class UserService {
         return userRepository.findByUsername(username)
             .map(User::getId)
             .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    // userId -> username cho nhieu nguoi trong 1 truy van (bo qua id null)
+    public Map<Long, String> usernames(Collection<Long> ids) {
+        Set<Long> distinct = ids.stream().filter(Objects::nonNull).collect(Collectors.toSet());
+        if (distinct.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(distinct).stream()
+            .collect(Collectors.toMap(User::getId, User::getUsername));
     }
 
     public User getUser(Long id) {

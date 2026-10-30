@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/global.css';
+import './styles/phase2.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Không tìm thấy phần tử #root');

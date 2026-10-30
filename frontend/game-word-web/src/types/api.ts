@@ -104,3 +104,118 @@ export interface ApiErrorBody {
   message: string;
   errors?: Record<string, string>;
 }
+
+// ===== Phase 2: phòng chơi, chat, bạn bè (DOC-007) =====
+
+export type GameType = 'WORD_GUESS' | 'WORD_CHAIN';
+export type RoomStatus = 'WAITING' | 'PLAYING' | 'CLOSED';
+export type MessageType = 'TEXT' | 'SYSTEM' | 'ROOM_INVITE';
+
+export interface ChatMessage {
+  id: number;
+  type: MessageType;
+  /** null với tin hệ thống */
+  senderId: number | null;
+  senderName: string | null;
+  recipientId?: number | null;
+  /** ROOM_INVITE: mã phòng */
+  content: string;
+  /** epoch ms */
+  createdAt: number;
+}
+
+export interface RoomMember {
+  userId: number;
+  username: string;
+  host: boolean;
+}
+
+export interface MatchPlayer {
+  userId: number;
+  username: string;
+  eliminated: boolean;
+  eliminatedReason: string | null;
+  attempts: number;
+  solved: boolean;
+  /** Đua đoán chữ: màu từng lượt của người chơi (không có chữ) */
+  colorRows?: CellColor[][] | null;
+}
+
+export interface ChainWord {
+  /** null = từ mở đầu do server đưa ra */
+  userId: number | null;
+  username: string | null;
+  word: string;
+}
+
+export interface MatchState {
+  id: number;
+  gameType: GameType;
+  status: 'PLAYING' | 'FINISHED';
+  winnerId?: number | null;
+  winnerName?: string | null;
+  startedAt: number;
+  players: MatchPlayer[];
+  // Đua đoán chữ
+  endsAt?: number;
+  wordLength?: number;
+  partLengths?: number[];
+  maxAttempts?: number;
+  myRows?: CellResult[][];
+  answer?: string | null;
+  definition?: string | null;
+  // Nối từ
+  currentUserId?: number | null;
+  turnDeadline?: number | null;
+  requiredSyllable?: string | null;
+  chain?: ChainWord[];
+}
+
+/** changed = false: phòng không đổi so với version đã gửi, chỉ có version + serverTime */
+export interface RoomState {
+  version: number;
+  changed: boolean;
+  serverTime: number;
+  code?: string;
+  status?: RoomStatus;
+  gameType?: GameType;
+  hostId?: number;
+  members?: RoomMember[];
+  match?: MatchState | null;
+  messages?: ChatMessage[];
+}
+
+export interface RoomSummary {
+  code: string;
+  status: RoomStatus;
+  gameType: GameType;
+  hostId: number;
+  hostName: string;
+  memberCount: number;
+  updatedAt: number;
+}
+
+export interface Friend {
+  userId: number;
+  username: string;
+  unread: number;
+}
+
+export interface FriendList {
+  friends: Friend[];
+  incoming: Friend[];
+  outgoing: Friend[];
+}
+
+export interface FriendSummary {
+  pendingRequests: number;
+  unreadMessages: number;
+}
+
+export type FriendRelation = 'NONE' | 'FRIEND' | 'INCOMING' | 'OUTGOING';
+
+export interface UserSearchResult {
+  userId: number;
+  username: string;
+  relation: FriendRelation;
+}

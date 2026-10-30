@@ -48,6 +48,9 @@ related_documents: ["DOC-001", "DOC-003", "DOC-005"]
 | GET | `/api/history/user/{userId}` | JWT | `HistoryController.history` | Lịch sử của người dùng |
 | GET | `/api/history/correct/user/{userId}` | JWT | `HistoryController.correct` | Các lượt đoán đúng |
 | GET | `/api/leaderboard` | Public | `LeaderboardController.leaderboard` | Bảng xếp hạng |
+| * | `/api/rooms/**` | JWT | `RoomController` | Phòng chơi, đua đoán chữ, nối từ, chat phòng (mục 4.9) |
+| * | `/api/friends/**` | JWT | `FriendController` | Kết bạn, tìm người, badge (mục 4.9) |
+| * | `/api/messages/**` | JWT | `MessageController` | Tin nhắn riêng giữa bạn bè (mục 4.9) |
 
 ## 4. Chi tiết endpoint
 
@@ -217,6 +220,15 @@ Bản ghi `attempt = 0` đánh dấu bắt đầu ván. `userId` trên path ph�
 
 Response 200: mảng `LeaderboardEntry` (`userId`, `username`, `totalScore`, `gamesPlayed`, `gamesWon`, `rank`), chỉ gồm người dùng có `gamesPlayed > 0`, sắp xếp `totalScore` giảm dần.
 
+### 4.9 Phase 2: phòng chơi, chat, bạn bè (từ 2026-10-30)
+
+Request/response chi tiết, luật chơi và cơ chế polling: xem [DOC-007 mục 7](../design/phase2-multiplayer-social-design.md#7-api-mọi-endpoint-yêu-cầu-jwt). Đã triển khai đúng như thiết kế, khác biệt:
+
+- `POST /api/rooms/{code}/guess` và `/chain` nhận thêm query `afterMessageId` (giống `GET`) để response chỉ chứa tin nhắn mới.
+- `POST /api/rooms/{code}/join` là idempotent: đã là thành viên thì chỉ trả trạng thái (frontend gọi mỗi lần mở trang phòng).
+- Thông số trong `application.properties`: `room.max-members`, `room.min-players`, `room.guess-time-seconds`, `room.chain-turn-seconds`.
+- Lỗi 400 (message tiếng Anh, frontend dịch trong `KNOWN_MESSAGES`): `Room not found`, `Room is full`, `Not a room member`, `Only the host can start`, `Match already in progress`, `Not enough players`, `No match in progress`, `Not your turn`, `Word must have 2 syllables`, `Word must start with: <tiếng>`, `No attempts left`, `Sending too fast`, `Not friends`, `Already friends`, `Request already sent`, ...
+
 ## 5. Định dạng lỗi (`GlobalExceptionHandler`)
 
 | Exception | HTTP | Body |
@@ -239,3 +251,4 @@ Lỗi phát sinh trong filter bảo mật (ví dụ token sai/hết hạn) khôn
 |-----------|------|-------|
 | 0.1 | 2026-10-24 | Khởi tạo từ controller/DTO |
 | 0.2 | 2026-10-24 | Cập nhật theo bản sửa: `gameId`, `answer`, game public, người chơi lấy từ token, kiểm tra quyền lịch sử |
+| 0.3 | 2026-10-30 | Quên/đổi mật khẩu, đăng nhập bằng email, Phase 2 (phòng, chat, bạn bè) |

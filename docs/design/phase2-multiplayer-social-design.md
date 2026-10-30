@@ -10,7 +10,7 @@ related_documents: ["DOC-001", "DOC-002", "DOC-003", "DOC-004"]
 
 # Thiết kế Phase 2: Phòng chơi nhiều người, chat, kết bạn
 
-> Toàn bộ tài liệu là **Proposed** (chưa triển khai). Cần duyệt mục 12 (câu hỏi mở) trước khi code.
+> **Trạng thái 2026-10-30:** M1-M4 đã triển khai trên nhánh `feature/phase2-multiplayer` theo các đề xuất mặc định ở mục 12 (chủ dự án duyệt "triển khai, điều chỉnh sau"). M5 đã có test tích hợp PostgreSQL nhúng (`RoomFlowIntegrationTest`); chưa kiểm thử trên thiết bị mobile.
 
 ## 1. Mục đích và phạm vi
 
@@ -326,3 +326,4 @@ Mỗi mốc là một nhánh/PR riêng, có test, deploy được độc lập.
 | Phiên bản | Ngày | Mô tả |
 |-----------|------|-------|
 | 0.1 | 2026-10-30 | Khởi tạo bản thiết kế để review |
+| 0.2 | 2026-10-30 | Triển khai M1-M4; lời mời vào phòng không bị giới hạn chống spam (chỉ tin nhắn văn bản) |

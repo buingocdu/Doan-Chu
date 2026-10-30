@@ -23,4 +23,12 @@ public interface WordRepository extends JpaRepository<Word, Long> {
     @Query("SELECT DISTINCT w.level FROM Word w WHERE w.active = true")
     List<Integer> findActiveLevels();
 
+    // Noi tu: tra tu dien theo cum tu co dau (chu thuong), dung index uk_words_phrase
+    boolean existsByPhraseAndActiveTrue(String phrase);
+
+    // Noi tu: tu mo dau pho bien (cap 1-2) gom dung 2 tieng
+    @Query(value = "SELECT * FROM words w WHERE w.active = true AND w.level <= 2 AND w.phrase LIKE '% %' "
+        + "AND w.phrase NOT LIKE '% % %' ORDER BY RANDOM() LIMIT 1", nativeQuery = true)
+    Optional<Word> findRandomChainStart();
+
 }

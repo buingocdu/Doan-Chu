@@ -10,6 +10,10 @@ import ChangePasswordPage from './features/auth/pages/ChangePasswordPage';
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
 import LeaderboardPage from './features/leaderboard/pages/LeaderboardPage';
 import HistoryPage from './features/history/pages/HistoryPage';
+import LobbyPage from './features/rooms/pages/LobbyPage';
+import RoomPage from './features/rooms/pages/RoomPage';
+import FriendsPage from './features/social/pages/FriendsPage';
+import ConversationPage from './features/social/pages/ConversationPage';
 
 function NotFoundPage() {
   return (
@@ -51,6 +55,38 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <HistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="rooms"
+              element={
+                <ProtectedRoute>
+                  <LobbyPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="rooms/:code"
+              element={
+                <ProtectedRoute>
+                  <RoomPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="friends"
+              element={
+                <ProtectedRoute>
+                  <FriendsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="messages/:userId"
+              element={
+                <ProtectedRoute>
+                  <ConversationPage />
                 </ProtectedRoute>
               }
             />

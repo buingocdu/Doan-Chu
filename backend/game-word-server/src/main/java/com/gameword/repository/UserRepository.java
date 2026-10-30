@@ -18,4 +18,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     List<User> findAllByOrderByTotalScoreDesc();
+
+    // Tim ban theo tien to ten tai khoan
+    List<User> findTop10ByUsernameStartingWithIgnoreCaseOrderByUsernameAsc(String prefix);
 }

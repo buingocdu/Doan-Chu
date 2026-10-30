@@ -1,12 +1,14 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Gamepad2, History, KeyRound, LogIn, LogOut, Trophy, UserPlus } from 'lucide-react';
+import { Gamepad2, History, KeyRound, LogIn, LogOut, MessageCircle, Trophy, UserPlus, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useFriendSummary } from '../../features/social/hooks/useFriendSummary';
 
 const navClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? ' active' : ''}`;
 
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const socialCount = useFriendSummary(user !== null);
 
   const handleLogout = () => {
     logout();
@@ -34,6 +36,23 @@ export default function AppLayout() {
           </NavLink>
           {user ? (
             <>
+              <NavLink to="/rooms" className={navClass}>
+                <Users size={18} aria-hidden="true" />
+                <span className="hide-sm">Phòng</span>
+              </NavLink>
+              <NavLink
+                to="/friends"
+                className={navClass}
+                aria-label={socialCount > 0 ? `Bạn bè, ${socialCount} thông báo mới` : 'Bạn bè'}
+              >
+                <MessageCircle size={18} aria-hidden="true" />
+                <span className="hide-sm">Bạn bè</span>
+                {socialCount > 0 && (
+                  <span className="badge" aria-hidden="true">
+                    {socialCount > 99 ? '99+' : socialCount}
+                  </span>
+                )}
+              </NavLink>
               <NavLink to="/history" className={navClass}>
                 <History size={18} aria-hidden="true" />
                 <span className="hide-sm">Lịch sử</span>
@@ -64,7 +83,7 @@ export default function AppLayout() {
       <main id="main" className="main">
         <Outlet />
       </main>
-      <footer className="app-footer muted">Game Đoán Chữ · Phase 1</footer>
+      <footer className="app-footer muted">Game Đoán Chữ · Phase 2</footer>
     </div>
   );
 }

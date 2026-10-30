@@ -1,0 +1,529 @@
+/* ===== Phase 2: phòng chơi, chat, bạn bè (DOC-007). Dùng token màu trong global.css ===== */
+.btn-sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+}
+
+.nav-link .badge {
+  margin-left: 0.1rem;
+  padding: 0 0.4rem;
+  background: var(--danger);
+  color: #fff;
+}
+
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-warn {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+/* ----- Sảnh ----- */
+.lobby-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .lobby-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.lobby-card {
+  padding: 1.1rem;
+}
+
+.lobby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.join-form,
+.chat-form,
+.chain-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.join-input,
+.chat-input,
+.chain-input,
+.search-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.join-input {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+}
+
+.lobby-rooms {
+  margin-top: 1.5rem;
+}
+
+.room-list,
+.people-list,
+.member-list,
+.invite-list,
+.opponent-list,
+.chain-players {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.room-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.room-item-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  padding: 0.8rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+
+.room-item-link:hover {
+  background: var(--surface-2);
+}
+
+.room-code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+}
+
+/* ----- Phòng ----- */
+.room-layout {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .room-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+
+  .room-side {
+    position: sticky;
+    top: 4.5rem;
+  }
+}
+
+.room-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.room-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.room-head h1 {
+  margin: 0;
+}
+
+.room-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.room-side {
+  display: grid;
+  gap: 1rem;
+}
+
+.room-setup {
+  padding: 1rem;
+}
+
+.room-hint {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.game-picker {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.game-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.game-option input {
+  grid-row: span 2;
+  align-self: center;
+}
+
+.game-option span {
+  font-size: 0.875rem;
+}
+
+.game-option-active {
+  border-color: var(--primary);
+}
+
+.match-result {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  text-align: center;
+}
+
+.match-result-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 0.3rem;
+}
+
+.match-won {
+  border-color: var(--green);
+}
+
+.match-won .match-result-title {
+  color: var(--green);
+}
+
+.definition-text {
+  font-size: 0.875rem;
+  margin-top: 0.3rem;
+}
+
+/* ----- Đua đoán chữ ----- */
+.race {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.race-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.opponents {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.opponent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.opponent {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.opponent-won {
+  border-color: var(--green);
+}
+
+.opponent-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 700;
+}
+
+.opponent-attempts {
+  margin-left: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.mini-cell {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.mini-cell.tile-green,
+.mini-cell.tile-yellow,
+.mini-cell.tile-blue,
+.mini-cell.tile-black {
+  border-color: transparent;
+}
+
+/* ----- Nối từ ----- */
+.chain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chain-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chain-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.chain-player-turn {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.chain-player-out {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.chain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  max-height: 18rem;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.chain-word {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 1.05rem;
+}
+
+.chain-word:last-child {
+  background: var(--surface-2);
+}
+
+.chain-word-mine strong {
+  color: var(--primary);
+}
+
+.chain-turn-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.chain-prefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--primary-text);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.chain-hint {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+/* ----- Thành viên, chat ----- */
+.members {
+  padding: 0.9rem 1rem;
+}
+
+.members-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.member-list {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.member-host {
+  color: var(--yellow);
+}
+
+.invite-box {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.invite-list li,
+.person {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.9rem 1rem;
+  gap: 0.5rem;
+}
+
+.chat-title {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: 22rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.conversation .chat-list {
+  height: calc(100dvh - 18rem);
+  min-height: 16rem;
+}
+
+.chat-system {
+  align-self: center;
+  max-width: 95%;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 85%;
+}
+
+.chat-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chat-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.chat-bubble {
+  padding: 0.4rem 0.7rem;
+  border-radius: 12px;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.chat-mine .chat-bubble {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.invite-msg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ----- Bạn bè ----- */
+.friends-section {
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.person-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.person .btn {
+  text-decoration: none;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}

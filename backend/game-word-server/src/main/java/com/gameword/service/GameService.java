@@ -106,8 +106,12 @@ public class GameService {
 
     // Dung lai cac o cua mot luot da luu: guess "LƯU HÀNH" + result "GREEN,BLUE,..."
     static List<CellResult> toCells(GameHistory h) {
-        List<Character> letters = displayLetters(h.getGuess());
-        String[] colors = h.getResult().split(",");
+        return toCells(h.getGuess(), h.getResult());
+    }
+
+    static List<CellResult> toCells(String guess, String result) {
+        List<Character> letters = displayLetters(guess);
+        String[] colors = result.split(",");
         List<CellResult> cells = new ArrayList<>(colors.length);
         for (int i = 0; i < colors.length; i++) {
             cells.add(CellResult.builder()
@@ -159,26 +163,10 @@ public class GameService {
                 .definition(word.getDefinition())
                 .build();
         }
-        if (guess.length() != target.length()) {
-            throw new RuntimeException("Tu doan phai co " + target.length() + " ki tu");
-        }
-        // Neu nguoi choi tach tieng bang dau cach thi so chu cua tung tieng phai khop
-        if (rawGuess.contains(" ")) {
-            List<Integer> typedParts = Arrays.stream(rawGuess.split("\\s+"))
-                .map(p -> displayLetters(p).size())
-                .filter(n -> n > 0)
-                .collect(Collectors.toList());
-            if (!typedParts.equals(parts)) {
-                throw new RuntimeException("Tu doan phai gom " + parts.size() + " tieng: "
-                    + parts.stream().map(String::valueOf).collect(Collectors.joining(" + ")) + " chu cai");
-            }
-        }
-
+        GuessEvaluation evaluation = evaluate(word, rawGuess);
         int attempt = guesses.size() + 1;
-        // So tung chu co dau theo vi tri: "NGÔI NHÀ" -> [N,G,Ô,I,N,H,À]
-        List<Character> targetLetters = targetLetters(word);
-        List<CellResult> cells = evaluateGuess(shown, targetLetters);
-        boolean correct = shown.equals(targetLetters);
+        List<CellResult> cells = evaluation.cells();
+        boolean correct = evaluation.correct();
 
         historyRepository.save(GameHistory.builder()
             .gameId(start.getId())
@@ -226,6 +214,40 @@ public class GameService {
             .answer(gameOver ? answerOf(word) : null)
             .definition(gameOver ? word.getDefinition() : null)
             .build();
+    }
+
+    // Ket qua cham mot luot doan: phrase = cum doan da chuan hoa de luu/hien thi ("VUI MỪNG")
+    record GuessEvaluation(String phrase, List<CellResult> cells, boolean correct) {
+        String colors() {
+            return cells.stream().map(CellResult::getColor).collect(Collectors.joining(","));
+        }
+    }
+
+    // Kiem tra dinh dang va cham mot luot doan; dung chung cho choi don va dua doan chu trong phong
+    static GuessEvaluation evaluate(Word word, String rawGuess) {
+        String raw = rawGuess == null ? "" : rawGuess.trim();
+        List<Character> shown = displayLetters(raw);
+        String guess = shown.stream().map(c -> baseLetter(c)).collect(Collectors.joining());
+        List<Integer> parts = partLengths(word);
+        int targetLength = word.getValue().length();
+        if (guess.length() != targetLength) {
+            throw new RuntimeException("Tu doan phai co " + targetLength + " ki tu");
+        }
+        // Neu nguoi choi tach tieng bang dau cach thi so chu cua tung tieng phai khop
+        if (raw.contains(" ")) {
+            List<Integer> typedParts = Arrays.stream(raw.split("\\s+"))
+                .map(p -> displayLetters(p).size())
+                .filter(n -> n > 0)
+                .collect(Collectors.toList());
+            if (!typedParts.equals(parts)) {
+                throw new RuntimeException("Tu doan phai gom " + parts.size() + " tieng: "
+                    + parts.stream().map(String::valueOf).collect(Collectors.joining(" + ")) + " chu cai");
+            }
+        }
+        // So tung chu co dau theo vi tri: "NGÔI NHÀ" -> [N,G,Ô,I,N,H,À]
+        List<Character> targetLetters = targetLetters(word);
+        List<CellResult> cells = evaluateGuess(shown, targetLetters);
+        return new GuessEvaluation(formatPhrase(shown, parts), cells, shown.equals(targetLetters));
     }
 
     /**
@@ -288,7 +310,7 @@ public class GameService {
         "GREEN", "xanh la", "BLUE", "xanh duong", "YELLOW", "vang", "BLACK", "den");
 
     // Chu cai co dau cua dap an; tu cu khong co phrase (hoac phrase khong khop do dai) thi dung value khong dau
-    private List<Character> targetLetters(Word word) {
+    private static List<Character> targetLetters(Word word) {
         if (word.getPhrase() != null) {
             List<Character> letters = displayLetters(word.getPhrase());
             if (letters.size() == word.getValue().length()) {
@@ -354,14 +376,14 @@ public class GameService {
     }
 
     // Dap an hien thi: tu co dau in hoa ("MÁY TÍNH"); tu cu khong co phrase thi tach theo tieng ("CHO MON")
-    private String answerOf(Word word) {
+    static String answerOf(Word word) {
         if (word.getPhrase() != null && !word.getPhrase().isBlank()) {
             return word.getPhrase().trim().toUpperCase(Locale.ROOT);
         }
         return formatPhrase(displayLetters(word.getValue()), partLengths(word));
     }
 
-    private List<Integer> partLengths(Word word) {
+    static List<Integer> partLengths(Word word) {
         String value = word.getValue();
         if (word.getPart1() != null && word.getPart2() != null
                 && (word.getPart1() + word.getPart2()).equalsIgnoreCase(value)) {
