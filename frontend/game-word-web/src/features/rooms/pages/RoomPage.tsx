@@ -13,10 +13,12 @@ import { useRoom } from '../hooks/useRoom';
 import { GAME_TYPE_LABELS } from '../utils/roomState';
 
 const MIN_PLAYERS = 2;
+/** Đua đoán chữ: các lựa chọn thời gian ván (khớp room.guess-minute-options ở backend) */
+const MINUTE_OPTIONS = [5, 10];
 
 const GAME_DESCRIPTIONS: Record<GameType, string> = {
   WORD_GUESS: 'Mọi người đoán cùng một từ ghép, mỗi người 10 lượt. Ai đoán đúng trước sẽ thắng.',
-  WORD_CHAIN: 'Lần lượt nối từ 2 tiếng: tiếng đầu phải trùng tiếng cuối của từ trước. Sai hoặc hết 20 giây bị loại.',
+  WORD_CHAIN: 'Lần lượt nối từ 2 tiếng: tiếng đầu phải trùng tiếng cuối của từ trước. Sai hoặc hết 30 giây bị loại.',
 };
 
 export default function RoomPage() {
@@ -27,6 +29,9 @@ export default function RoomPage() {
   const [selected, setSelected] = useState<GameType | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  // Tùy chọn Đua đoán chữ
+  const [minutes, setMinutes] = useState(5);
+  const [hints, setHints] = useState(false);
   const [copied, setCopied] = useState(false);
 
   if (!user) return null;
@@ -48,7 +53,7 @@ export default function RoomPage() {
     setStarting(true);
     setActionError(null);
     try {
-      await start(gameType);
+      await start(gameType, gameType === 'WORD_GUESS' ? { minutes, hints } : undefined);
     } catch (error) {
       setActionError(getErrorMessage(error, 'Không bắt đầu được ván.'));
     } finally {
@@ -131,6 +136,45 @@ export default function RoomPage() {
                     </label>
                   ))}
                 </fieldset>
+                {gameType === 'WORD_GUESS' && (
+                  <div className="match-options">
+                    <fieldset className="option-group">
+                      <legend>Thời gian ván</legend>
+                      {MINUTE_OPTIONS.map((m) => (
+                        <label key={m} className={`option-pill${minutes === m ? ' option-pill-active' : ''}`}>
+                          <input
+                            type="radio"
+                            name="minutes"
+                            value={m}
+                            checked={minutes === m}
+                            onChange={() => setMinutes(m)}
+                          />
+                          {m} phút
+                        </label>
+                      ))}
+                    </fieldset>
+                    <fieldset className="option-group">
+                      <legend>Gợi ý chữ cái</legend>
+                      {[true, false].map((on) => (
+                        <label key={String(on)} className={`option-pill${hints === on ? ' option-pill-active' : ''}`}>
+                          <input
+                            type="radio"
+                            name="hints"
+                            value={on ? 'yes' : 'no'}
+                            checked={hints === on}
+                            onChange={() => setHints(on)}
+                          />
+                          {on ? 'Có' : 'Không'}
+                        </label>
+                      ))}
+                    </fieldset>
+                    {hints && (
+                      <p className="muted option-note">
+                        Cứ 30 giây lộ thêm 1 chữ cái đúng vị trí cho cả phòng, hiện ở một dòng riêng trên bảng đoán.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   className="btn btn-primary btn-block"

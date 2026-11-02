@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { ChatMessage, RoomState } from '../../../types/api';
-import { appendMessages, lastMessageId, mergeRoomState, secondsLeft } from './roomState';
+import {
+  appendMessages,
+  lastMessageId,
+  mergeRoomState,
+  msLeft,
+  nextPlayerId,
+  secondsLeft,
+  timeLevel,
+} from './roomState';
 
 const msg = (id: number): ChatMessage => ({
   id,
@@ -53,5 +61,37 @@ describe('secondsLeft', () => {
     expect(secondsLeft(20_000, 1_000, 9_000)).toBe(10);
     expect(secondsLeft(20_000, 0, 30_000)).toBe(0);
     expect(secondsLeft(null, 0)).toBe(0);
+  });
+});
+
+describe('nextPlayerId', () => {
+  const players = [
+    { userId: 1, eliminated: false },
+    { userId: 2, eliminated: true },
+    { userId: 3, eliminated: false },
+  ];
+
+  it('bỏ qua người đã bị loại và vòng lại đầu danh sách', () => {
+    expect(nextPlayerId(players, 1)).toBe(3);
+    expect(nextPlayerId(players, 3)).toBe(1);
+  });
+
+  it('không có lượt hiện tại thì không có người kế tiếp', () => {
+    expect(nextPlayerId(players, null)).toBeNull();
+    expect(nextPlayerId([{ userId: 1, eliminated: false }], 1)).toBeNull();
+  });
+});
+
+describe('msLeft và timeLevel', () => {
+  it('tính theo giờ server và không âm', () => {
+    expect(msLeft(10_000, 500, 4_000)).toBe(5_500);
+    expect(msLeft(10_000, 0, 20_000)).toBe(0);
+    expect(msLeft(null, 0)).toBe(0);
+  });
+
+  it('vàng khi còn 10 giây, đỏ khi còn 5 giây', () => {
+    expect(timeLevel(30)).toBe('ok');
+    expect(timeLevel(10)).toBe('warn');
+    expect(timeLevel(5)).toBe('danger');
   });
 });

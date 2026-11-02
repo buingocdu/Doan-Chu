@@ -10,6 +10,7 @@ import {
   roomGuess,
   sendRoomMessage,
   startMatch,
+  type MatchOptions,
 } from '../../../services/api';
 import type { GameType, RoomState } from '../../../types/api';
 import { lastMessageId, mergeRoomState, type RoomView } from '../utils/roomState';
@@ -63,7 +64,10 @@ export function useRoom(code: string) {
   const playing = view?.status === 'PLAYING';
   usePolling(refresh, playing ? POLL_PLAYING_MS : POLL_WAITING_MS, view !== null && fatal === null);
 
-  const start = useCallback(async (gameType: GameType) => apply(await startMatch(code, gameType)), [code, apply]);
+  const start = useCallback(
+    async (gameType: GameType, options?: MatchOptions) => apply(await startMatch(code, gameType, options)),
+    [code, apply],
+  );
 
   const guess = useCallback(
     async (text: string) => apply(await roomGuess(code, text, lastMessageId(viewRef.current))),

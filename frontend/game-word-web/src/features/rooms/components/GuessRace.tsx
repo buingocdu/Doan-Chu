@@ -6,6 +6,7 @@ import GameBoard from '../../game/components/GameBoard';
 import GuessInput from '../../game/components/GuessInput';
 import { countLetters, formatGuess, normalizeParts, toDisplayLetters } from '../../game/utils/gameState';
 import Countdown from './Countdown';
+import HintRow from './HintRow';
 import MiniBoard from './MiniBoard';
 
 interface GuessRaceProps {
@@ -97,6 +98,17 @@ export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRa
           )}
           {match.definition && <p className="muted definition-text">{match.definition.split('\n')[0]}</p>}
         </div>
+      )}
+
+      {playing && match.hints && (
+        <HintRow
+          hints={match.hints}
+          nextHintAt={match.nextHintAt}
+          clockOffset={clockOffset}
+          wordLength={wordLength}
+          partLengths={partLengths}
+          maxAttempts={maxAttempts}
+        />
       )}
 
       <GameBoard

@@ -13,8 +13,13 @@ import com.gameword.repository.RoomMatchRepository;
 import com.gameword.repository.WordRepository;
 import org.springframework.stereotype.Component;
 
+import com.gameword.dto.HintDto;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Consumer;
 
 // Dua doan chu: moi nguoi doan cung mot tu, doc lap; nguoi dau tien doan dung thang (DOC-007 muc 3.2)
@@ -52,7 +57,8 @@ class WordGuessEngine implements MatchEngine {
     public void start(RoomMatch match, List<Long> playerIds, Consumer<String> announce) {
         Word word = wordService.getWord(wordService.getRandomWord(List.of()).getId());
         match.setWordId(word.getId());
-        match.setEndsAt(match.getStartedAt().plusSeconds(roomConfig.getGuessTimeSeconds()));
+        int duration = match.getDurationSeconds() != null ? match.getDurationSeconds() : roomConfig.getGuessTimeSeconds();
+        match.setEndsAt(match.getStartedAt().plusSeconds(duration));
         matchRepository.save(match);
         for (int i = 0; i < playerIds.size(); i++) {
             playerRepository.save(MatchPlayer.builder()
@@ -64,8 +70,10 @@ class WordGuessEngine implements MatchEngine {
                 .build());
         }
         announce.accept("Bắt đầu Đua đoán chữ! Từ gồm " + GameService.partLengths(word).size() + " tiếng, mỗi người "
-            + gameConfig.getMaxAttempts() + " lượt, " + roomConfig.getGuessTimeSeconds() / 60
-            + " phút. Ai đoán đúng trước sẽ thắng.");
+            + gameConfig.getMaxAttempts() + " lượt, " + duration / 60 + " phút"
+            + (Boolean.TRUE.equals(match.getHints())
+                ? ", cứ " + roomConfig.getHintIntervalSeconds() + " giây lộ thêm 1 chữ cái gợi ý" : "")
+            + ". Ai đoán đúng trước sẽ thắng.");
     }
 
     public void guess(RoomMatch match, Long userId, String rawGuess, Consumer<String> announce) {
@@ -147,5 +155,23 @@ class WordGuessEngine implements MatchEngine {
         match.setWinnerId(winnerId);
         match.setFinishedAt(now);
         matchRepository.save(match);
+    }
+
+    // Goi y sau elapsed giay: moi interval giay lo them 1 chu cai, toi da (so chu - 1) de van con phai doan.
+    // Thu tu vi tri xao tron co dinh theo id van, nen moi nguoi va moi lan tai lai deu thay giong nhau.
+    static List<HintDto> hintsAt(long matchId, List<Character> letters, long elapsedSeconds, int interval) {
+        int count = (int) Math.max(0, Math.min(elapsedSeconds / interval, letters.size() - 1));
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < letters.size(); i++) {
+            order.add(i);
+        }
+        Collections.shuffle(order, new Random(matchId));
+        List<Integer> shown = new ArrayList<>(order.subList(0, count));
+        Collections.sort(shown);
+        List<HintDto> hints = new ArrayList<>(count);
+        for (int i : shown) {
+            hints.add(new HintDto(i, String.valueOf(letters.get(i))));
+        }
+        return hints;
     }
 }

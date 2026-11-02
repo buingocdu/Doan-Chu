@@ -226,7 +226,9 @@ Request/response chi tiết, luật chơi và cơ chế polling: xem [DOC-007 m�
 
 - `POST /api/rooms/{code}/guess` và `/chain` nhận thêm query `afterMessageId` (giống `GET`) để response chỉ chứa tin nhắn mới.
 - `POST /api/rooms/{code}/join` là idempotent: đã là thành viên thì chỉ trả trạng thái (frontend gọi mỗi lần mở trang phòng).
-- Thông số trong `application.properties`: `room.max-members`, `room.min-players`, `room.guess-time-seconds`, `room.chain-turn-seconds`.
+- `POST /api/rooms/{code}/start` nhận thêm tùy chọn Đua đoán chữ: `{ "gameType": "WORD_GUESS", "minutes": 5 | 10, "hints": true }`. Không gửi `minutes` thì lấy 5 phút; giá trị khác trả 400 `Invalid match duration`. `hints` bỏ qua với Nối từ.
+- Trạng thái ván có thêm: `hints` (mảng `{ index, letter }`, các chữ cái đáp án đã lộ đúng vị trí, cứ 30 giây thêm 1 chữ, tối đa số chữ − 1, chỉ khi bật gợi ý và ván đang chơi), `nextHintAt` (epoch ms lộ chữ tiếp theo, null khi hết), `turnSeconds` (Nối từ: độ dài mỗi lượt, mặc định 30 giây).
+- Thông số trong `application.properties`: `room.max-members`, `room.min-players`, `room.guess-time-seconds` (ván cũ không có `duration_seconds`), `room.guess-minute-options` (5,10), `room.hint-interval-seconds` (30), `room.chain-turn-seconds` (30).
 - Lỗi 400 (message tiếng Anh, frontend dịch trong `KNOWN_MESSAGES`): `Room not found`, `Room is full`, `Not a room member`, `Only the host can start`, `Match already in progress`, `Not enough players`, `No match in progress`, `Not your turn`, `Word must have 2 syllables`, `Word must start with: <tiếng>`, `No attempts left`, `Sending too fast`, `Not friends`, `Already friends`, `Request already sent`, ...
 
 ## 5. Định dạng lỗi (`GlobalExceptionHandler`)

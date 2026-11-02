@@ -14,5 +14,7 @@
     <include file="v1.6.0/rooms.xml" relativeToChangelogFile="true"/>
     <include file="v1.7.0/friendships.xml" relativeToChangelogFile="true"/>
     <include file="v1.8.0/words-chain-extra.xml" relativeToChangelogFile="true"/>
+    <include file="v1.9.0/words-chain-variants.xml" relativeToChangelogFile="true"/>
+    <include file="v1.10.0/match-options.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

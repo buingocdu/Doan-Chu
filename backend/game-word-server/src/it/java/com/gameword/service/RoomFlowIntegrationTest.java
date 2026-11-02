@@ -2,6 +2,7 @@ package com.gameword.service;
 
 import com.gameword.dto.ChainWordDto;
 import com.gameword.dto.ChatMessageDto;
+import com.gameword.dto.GameTypeRequest;
 import com.gameword.dto.RegisterRequest;
 import com.gameword.dto.RoomStateResponse;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
@@ -65,6 +66,33 @@ class RoomFlowIntegrationTest {
         POSTGRES.close();
     }
 
+    private static GameTypeRequest type(String gameType) {
+        return GameTypeRequest.builder().gameType(gameType).build();
+    }
+
+    @Test
+    void wordGuessOptionsSetDurationAndHintsWithDictionaryMigrations() {
+        Long host = newUser();
+        Long guest = newUser();
+        String code = roomService.create(host, "WORD_GUESS").getCode();
+        roomService.join(guest, code);
+        RoomStateResponse state = roomService.start(host, code,
+            GameTypeRequest.builder().gameType("WORD_GUESS").minutes(10).hints(true).build());
+
+        var match = state.getMatch();
+        assertEquals(600_000L, match.getEndsAt() - match.getStartedAt(), 1_000L);
+        // Vua bat dau: chua lo chu nao, chu dau tien sau 30 giay
+        assertEquals(List.of(), match.getHints());
+        assertEquals(30_000L, match.getNextHintAt() - match.getStartedAt(), 1_000L);
+
+        assertThrows(RuntimeException.class, () -> roomService.start(host, code,
+            GameTypeRequest.builder().gameType("WORD_GUESS").minutes(7).build()));
+
+        // v1.9.0: bien the chinh ta va tu bo sung cho Noi tu
+        assertEquals(1, jdbc.queryForObject(
+            "SELECT count(*) FROM words WHERE phrase = 'biến hóa' AND chain_only", Integer.class));
+    }
+
     private Long newUser() {
         String name = "it_user" + SEQ.incrementAndGet();
         return userService.register(new RegisterRequest(name, "secret1", name + "@example.com")).getUserId();
@@ -77,7 +105,7 @@ class RoomFlowIntegrationTest {
         RoomStateResponse room = roomService.create(host, "WORD_GUESS");
         String code = room.getCode();
         roomService.join(guest, code);
-        roomService.start(host, code, "WORD_GUESS");
+        roomService.start(host, code, type("WORD_GUESS"));
 
         // Doc dap an tu DB (client khong bao gio nhan duoc khi van dang choi)
         RoomStateResponse playing = roomService.getState(guest, code, null, null);
@@ -105,7 +133,7 @@ class RoomFlowIntegrationTest {
         Long b = newUser();
         String code = roomService.create(a, "WORD_GUESS").getCode();
         roomService.join(b, code);
-        Long matchId = roomService.start(a, code, "WORD_GUESS").getMatch().getId();
+        Long matchId = roomService.start(a, code, type("WORD_GUESS")).getMatch().getId();
         String answer = jdbc.queryForObject("SELECT w.phrase FROM words w JOIN matches m ON m.word_id = w.id "
             + "WHERE m.id = ?", String.class, matchId);
 
@@ -145,7 +173,7 @@ class RoomFlowIntegrationTest {
         Long b = newUser();
         String code = roomService.create(a, "WORD_CHAIN").getCode();
         roomService.join(b, code);
-        RoomStateResponse state = roomService.start(a, code, "WORD_CHAIN");
+        RoomStateResponse state = roomService.start(a, code, type("WORD_CHAIN"));
         Long current = state.getMatch().getCurrentUserId();
         String required = state.getMatch().getRequiredSyllable();
         assertNotNull(required);
@@ -185,7 +213,7 @@ class RoomFlowIntegrationTest {
         Long b = newUser();
         String code = roomService.create(a, "WORD_CHAIN").getCode();
         roomService.join(b, code);
-        RoomStateResponse state = roomService.start(a, code, "WORD_CHAIN");
+        RoomStateResponse state = roomService.start(a, code, type("WORD_CHAIN"));
         // Dat tu truoc la "bức tường" de nguoi dang toi luot noi bang tu chi co trong nguon bo sung
         jdbc.update("UPDATE matches SET last_word = 'bức tường' WHERE id = ?", state.getMatch().getId());
         Long current = state.getMatch().getCurrentUserId();

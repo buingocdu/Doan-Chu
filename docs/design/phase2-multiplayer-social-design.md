@@ -68,7 +68,7 @@ related_documents: ["DOC-001", "DOC-002", "DOC-003", "DOC-004"]
 ### 3.3 Nối từ (`WORD_CHAIN`)
 
 - Thứ tự lượt: xáo trộn ngẫu nhiên lúc bắt đầu. Server đưa ra **từ mở đầu** ngẫu nhiên (từ 2 tiếng có trong từ điển).
-- Đến lượt mình, người chơi có **20 giây** nhập một từ **2 tiếng** sao cho **tiếng đầu = tiếng cuối của từ trước** (giữ nguyên dấu; không phân biệt hoa thường). Ví dụ: `máy tính` → `tính toán` → `toán học`.
+- Đến lượt mình, người chơi có **30 giây** nhập một từ **2 tiếng** sao cho **tiếng đầu = tiếng cuối của từ trước** (giữ nguyên dấu; không phân biệt hoa thường). Ví dụ: `máy tính` → `tính toán` → `toán học`.
 - Từ hợp lệ khi: có trong từ điển (`words.phrase`, ~45.000 từ) **và** chưa được dùng trong ván.
 - **Bị loại** khi: hết giờ; hoặc gửi từ không có trong từ điển; hoặc từ đã dùng.
 - **Không bị loại** (chỉ báo lỗi, được nhập lại trong thời gian còn lại) khi lỗi định dạng: rỗng, không đủ 2 tiếng, tiếng đầu không khớp. Giao diện điền sẵn tiếng đầu, người chơi chỉ gõ tiếng thứ hai, nên lỗi này hầu như không xảy ra (xem câu hỏi mở Q1).
@@ -188,7 +188,7 @@ stateDiagram-v2
 
 Ván Nối từ, mỗi sự kiện (nước đi / hết giờ / rời phòng) chạy:
 
-1. Hợp lệ → ghi `match_moves`, `last_word` = từ mới, chuyển lượt cho người **chưa bị loại** kế tiếp theo `turn_order`, `turn_deadline` = now + 20s.
+1. Hợp lệ → ghi `match_moves`, `last_word` = từ mới, chuyển lượt cho người **chưa bị loại** kế tiếp theo `turn_order`, `turn_deadline` = now + 30s.
 2. Bị loại → `eliminated = true` (+ lý do), tin hệ thống. Còn 1 người → `winner_id`, `FINISHED`. Ngược lại chuyển lượt như trên.
 3. Hết giờ được xử lý lười: mỗi request xử lý tối đa 1 lần hết giờ rồi đặt hạn mới tính từ hiện tại (tránh loại liên hoàn nhiều người do không ai poll).
 
@@ -303,8 +303,8 @@ Mỗi mốc là một nhánh/PR riêng, có test, deploy được độc lập.
 
 | # | Câu hỏi | Đề xuất mặc định |
 |---|---------|------------------|
-| Q1 | Nối từ: gõ sai chính tả (từ không có trong từ điển) có bị loại ngay không, hay cho thử lại trong 20 giây? | **Loại ngay** theo luật đã chọn; lỗi định dạng thì không loại |
-| Q2 | Thông số: 8 người/phòng, 20 giây/lượt Nối từ, 5 phút/ván Đua đoán chữ, 10 lượt đoán | Như bên trái, đặt trong `application.properties` để chỉnh được |
+| Q1 | Nối từ: gõ sai chính tả (từ không có trong từ điển) có bị loại ngay không, hay cho thử lại trong 30 giây? | **Loại ngay** theo luật đã chọn; lỗi định dạng thì không loại |
+| Q2 | Thông số: 8 người/phòng, 30 giây/lượt Nối từ, 5 phút/ván Đua đoán chữ, 10 lượt đoán | Như bên trái, đặt trong `application.properties` để chỉnh được |
 | Q3 | Đua đoán chữ: cho đối thủ thấy **màu** (không thấy chữ) của nhau? | **Có** |
 | Q4 | Người vào giữa ván: làm người xem, chơi từ ván sau? | **Có** |
 | Q5 | Có cần danh sách phòng công khai để người lạ vào? | **Không** (chỉ mã phòng + mời bạn) |

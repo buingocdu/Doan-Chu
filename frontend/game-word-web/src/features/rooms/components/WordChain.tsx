@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Crown, Send } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { Crown, Hourglass, Send } from 'lucide-react';
 import { getErrorMessage } from '../../../services/api';
 import type { MatchState } from '../../../types/api';
-import Countdown from './Countdown';
+import { useNow } from '../hooks/useNow';
+import { msLeft, nextPlayerId, timeLevel } from '../utils/roomState';
 
 interface WordChainProps {
   match: MatchState;
@@ -18,6 +19,9 @@ const REASON_LABELS: Record<string, string> = {
   LEFT: 'rời phòng',
 };
 
+/** Server cũ chưa gửi turnSeconds */
+const DEFAULT_TURN_SECONDS = 30;
+
 // Nối từ: tiếng đầu được điền sẵn (tiếng cuối của từ trước), người chơi chỉ gõ tiếng thứ hai
 export default function WordChain({ match, myId, clockOffset, onPlay }: WordChainProps) {
   const [second, setSecond] = useState('');
@@ -32,6 +36,16 @@ export default function WordChain({ match, myId, clockOffset, onPlay }: WordChai
   const myTurn = playing && match.currentUserId === myId;
   const current = match.players.find((p) => p.userId === match.currentUserId);
   const me = match.players.find((p) => p.userId === myId);
+  const nextId = playing ? nextPlayerId(match.players, match.currentUserId) : null;
+  const next = match.players.find((p) => p.userId === nextId);
+
+  // Đồng hồ lượt: thanh thời gian và vòng quanh avatar người đang chơi
+  const now = useNow(200, playing);
+  const total = (match.turnSeconds ?? DEFAULT_TURN_SECONDS) * 1000;
+  const left = playing ? msLeft(match.turnDeadline, clockOffset, now) : 0;
+  const seconds = Math.ceil(left / 1000);
+  const fraction = Math.min(1, left / total);
+  const level = timeLevel(seconds);
 
   useEffect(() => {
     const list = listRef.current;
@@ -69,21 +83,47 @@ export default function WordChain({ match, myId, clockOffset, onPlay }: WordChai
 
   return (
     <div className="chain">
-      <ul className="chain-players" aria-label="Người chơi">
-        {match.players.map((p) => (
-          <li
-            key={p.userId}
-            className={`chain-player${p.userId === match.currentUserId ? ' chain-player-turn' : ''}${
-              p.eliminated ? ' chain-player-out' : ''
-            }`}
-            title={p.eliminated ? `Bị loại: ${REASON_LABELS[p.eliminatedReason ?? ''] ?? ''}` : undefined}
-          >
-            {p.userId === match.winnerId && <Crown size={14} aria-label="Người thắng" />}
-            {p.username}
-            {p.userId === myId && ' (bạn)'}
-          </li>
-        ))}
-      </ul>
+      <ol className="chain-seats" aria-label="Thứ tự lượt chơi">
+        {match.players.map((p, i) => {
+          const isTurn = playing && p.userId === match.currentUserId;
+          const isNext = p.userId === nextId && !isTurn;
+          const status = p.eliminated
+            ? `Bị loại · ${REASON_LABELS[p.eliminatedReason ?? ''] ?? ''}`
+            : isTurn
+              ? `Đang chơi · ${seconds}s`
+              : isNext
+                ? 'Tiếp theo'
+                : p.userId === match.winnerId
+                  ? 'Thắng'
+                  : '';
+          return (
+            <li
+              key={p.userId}
+              className={`chain-seat${isTurn ? ` chain-seat-turn chain-seat-${level}` : ''}${
+                isNext ? ' chain-seat-next' : ''
+              }${p.eliminated ? ' chain-seat-out' : ''}${p.userId === myId ? ' chain-seat-me' : ''}`}
+              aria-current={isTurn ? 'step' : undefined}
+            >
+              <span
+                className="chain-avatar"
+                style={isTurn ? ({ '--p': fraction } as CSSProperties) : undefined}
+                aria-hidden="true"
+              >
+                <span className="chain-avatar-inner">
+                  {p.userId === match.winnerId ? <Crown size={16} /> : i + 1}
+                </span>
+              </span>
+              <span className="chain-seat-text">
+                <span className="chain-seat-name">
+                  {p.username}
+                  {p.userId === myId && ' (bạn)'}
+                </span>
+                {status && <span className="chain-seat-status">{status}</span>}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
 
       <ol className="chain-list card" ref={listRef} aria-label="Chuỗi từ">
         {chain.map((w, i) => (
@@ -95,11 +135,20 @@ export default function WordChain({ match, myId, clockOffset, onPlay }: WordChai
       </ol>
 
       {playing ? (
-        <div className="chain-turn">
-          <p className="chain-turn-label">
-            {myTurn ? 'Tới lượt bạn!' : current ? `Lượt của ${current.username}` : ''}
-            <Countdown deadline={match.turnDeadline} clockOffset={clockOffset} />
-          </p>
+        <div className={`chain-turn card${myTurn ? ' chain-turn-mine' : ''}`}>
+          <div className="chain-turn-head">
+            <p className="chain-turn-label" aria-live="polite">
+              {myTurn ? 'Tới lượt bạn!' : current ? `Lượt của ${current.username}` : ''}
+            </p>
+            <span className={`chain-clock chain-clock-${level}`} role="timer" aria-label={`Còn ${seconds} giây`}>
+              <Hourglass size={18} aria-hidden="true" />
+              {seconds}s
+            </span>
+          </div>
+          <div className={`chain-timebar chain-timebar-${level}`} aria-hidden="true">
+            <span style={{ transform: `scaleX(${fraction})` }} />
+          </div>
+
           {myTurn ? (
             <form className="chain-form" onSubmit={handleSubmit}>
               <span className="chain-prefix" aria-hidden="true">
@@ -127,12 +176,18 @@ export default function WordChain({ match, myId, clockOffset, onPlay }: WordChai
               </button>
             </form>
           ) : (
-            <p className="muted">
+            <p className="muted chain-wait">
               {me?.eliminated
                 ? 'Bạn đã bị loại, hãy xem mọi người chơi tiếp.'
                 : me
                   ? `Từ tiếp theo phải bắt đầu bằng "${required}".`
                   : 'Bạn đang xem ván này, sẽ được chơi từ ván sau.'}
+              {next && (
+                <>
+                  {' '}
+                  Tiếp theo: <strong>{next.userId === myId ? 'bạn' : next.username}</strong>.
+                </>
+              )}
             </p>
           )}
           {error && (

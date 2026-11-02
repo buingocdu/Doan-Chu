@@ -51,6 +51,15 @@ public class RoomMatch {
     @Column(name = "ends_at")
     private LocalDateTime endsAt;
 
+    // Dua doan chu: thoi gian van (giay) chu phong chon; null = van cu, dung room.guess-time-seconds
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
+
+    // Dua doan chu: cu moi room.hint-interval-seconds lo them 1 chu cai dung vi tri
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean hints = false;
+
     // Noi tu: tu hop le gan nhat (chu thuong co dau)
     @Column(name = "last_word")
     private String lastWord;

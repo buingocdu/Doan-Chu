@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Tuy chon Dua doan chu do chu phong chon khi bat dau van: thoi gian (5/10 phut) va goi y chu cai.
+         duration_seconds NULL = van cu, dung room.guess-time-seconds -->
+    <changeSet id="25" author="claude">
+        <addColumn tableName="matches">
+            <column name="duration_seconds" type="INTEGER"/>
+            <column name="hints" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

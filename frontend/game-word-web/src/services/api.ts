@@ -99,8 +99,14 @@ export const getRoomState = (code: string, since: number | null, afterMessageId:
     params: { ...(since !== null && { since }), ...(afterMessageId !== null && { afterMessageId }) },
   }).then((r) => r.data);
 
-export const startMatch = (code: string, gameType: GameType) =>
-  API.post<RoomState>(`${roomPath(code)}/start`, { gameType }).then((r) => r.data);
+/** Tùy chọn Đua đoán chữ: thời gian ván (phút) và gợi ý chữ cái */
+export interface MatchOptions {
+  minutes?: number;
+  hints?: boolean;
+}
+
+export const startMatch = (code: string, gameType: GameType, options: MatchOptions = {}) =>
+  API.post<RoomState>(`${roomPath(code)}/start`, { gameType, ...options }).then((r) => r.data);
 
 export const roomGuess = (code: string, guess: string, afterMessageId: number | null) =>
   API.post<RoomState>(`${roomPath(code)}/guess`, { guess }, {
@@ -166,6 +172,7 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Only the host can start': 'Chỉ chủ phòng mới bắt đầu được ván.',
   'Match already in progress': 'Ván đang diễn ra.',
   'Not enough players': 'Cần ít nhất 2 người để bắt đầu.',
+  'Invalid match duration': 'Thời gian ván chỉ được chọn 5 hoặc 10 phút.',
   'No match in progress': 'Ván đã kết thúc.',
   'Wrong game type': 'Ván hiện tại không phải chế độ này.',
   'Not a player in this match': 'Bạn đang xem, sẽ được chơi từ ván sau.',

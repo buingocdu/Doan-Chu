@@ -5,6 +5,8 @@ import com.gameword.config.RoomConfig;
 import com.gameword.dto.CellResult;
 import com.gameword.dto.ChainWordDto;
 import com.gameword.dto.ChatMessageDto;
+import com.gameword.dto.GameTypeRequest;
+import com.gameword.dto.HintDto;
 import com.gameword.dto.MatchPlayerDto;
 import com.gameword.dto.MatchStateDto;
 import com.gameword.dto.RoomMemberDto;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -193,7 +196,7 @@ public class RoomService {
         return buildState(room, userId, afterMessageId);
     }
 
-    public RoomStateResponse start(Long userId, String code, String gameType) {
+    public RoomStateResponse start(Long userId, String code, GameTypeRequest request) {
         Room room = lockOpenRoom(code);
         requireMember(room, userId);
         if (!room.getHostId().equals(userId)) {
@@ -207,12 +210,15 @@ public class RoomService {
         if (playerIds.size() < roomConfig.getMinPlayers()) {
             throw new RuntimeException("Not enough players");
         }
-        GameType type = GameType.parse(gameType);
+        GameType type = GameType.parse(request.getGameType());
+        boolean guessMode = type == GameType.WORD_GUESS;
         RoomMatch match = matchRepository.save(RoomMatch.builder()
             .roomId(room.getId())
             .gameType(type.name())
             .status(RoomMatch.PLAYING)
             .startedAt(LocalDateTime.now())
+            .durationSeconds(guessMode ? guessMinutes(request.getMinutes()) * 60 : null)
+            .hints(guessMode && Boolean.TRUE.equals(request.getHints()))
             .build());
         engineOf(match).start(match, playerIds, announce(room));
         room.setGameType(type.name());
@@ -220,6 +226,18 @@ public class RoomService {
         syncRoom(room, match);
         touch(room);
         return buildState(room, userId, null);
+    }
+
+    // Chi nhan cac lua chon trong room.guess-minute-options; khong gui thi lay lua chon dau tien
+    private int guessMinutes(Integer minutes) {
+        List<Integer> options = roomConfig.getGuessMinuteOptions();
+        if (minutes == null) {
+            return options.get(0);
+        }
+        if (!options.contains(minutes)) {
+            throw new RuntimeException("Invalid match duration");
+        }
+        return minutes;
     }
 
     public RoomStateResponse guess(Long userId, String code, String guess, Long afterMessageId) {
@@ -409,6 +427,17 @@ public class RoomService {
                 .filter(m -> Objects.equals(viewerId, m.getUserId()))
                 .map(m -> GameService.toCells(m.getContent(), m.getResult()))
                 .collect(Collectors.toList());
+            if (match.isPlaying() && Boolean.TRUE.equals(match.getHints())) {
+                long elapsed = Duration.between(match.getStartedAt(), LocalDateTime.now()).getSeconds();
+                int interval = roomConfig.getHintIntervalSeconds();
+                List<Character> letters = GameService.targetLetters(word);
+                List<HintDto> hints = WordGuessEngine.hintsAt(match.getId(), letters, elapsed, interval);
+                dto.hints(hints);
+                LocalDateTime next = match.getStartedAt().plusSeconds((long) (hints.size() + 1) * interval);
+                if (hints.size() < letters.size() - 1 && next.isBefore(match.getEndsAt())) {
+                    dto.nextHintAt(Times.epochMillis(next));
+                }
+            }
             dto.endsAt(Times.epochMillis(match.getEndsAt()))
                 .wordLength(word.getValue().length())
                 .partLengths(GameService.partLengths(word))
@@ -433,6 +462,7 @@ public class RoomService {
             if (match.isPlaying()) {
                 dto.currentUserId(match.getCurrentUserId())
                     .turnDeadline(Times.epochMillis(match.getTurnDeadline()))
+                    .turnSeconds(roomConfig.getChainTurnSeconds())
                     .requiredSyllable(WordChainEngine.lastSyllable(match.getLastWord()));
             }
         }

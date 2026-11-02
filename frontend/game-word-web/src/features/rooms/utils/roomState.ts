@@ -55,6 +55,33 @@ export function lastMessageId(view: RoomView | null): number | null {
 }
 
 // Giây còn lại tới hạn chót (giờ server)
+/** Mili giây còn lại tới hạn chót (theo giờ server), không âm */
+export function msLeft(deadline: number | null | undefined, clockOffset: number, now = Date.now()): number {
+  if (!deadline) return 0;
+  return Math.max(0, deadline - (now + clockOffset));
+}
+
+/** Mức cảnh báo của thời gian lượt: còn ≤ 10s là vàng, ≤ 5s là đỏ */
+export function timeLevel(seconds: number): 'ok' | 'warn' | 'danger' {
+  if (seconds <= 5) return 'danger';
+  if (seconds <= 10) return 'warn';
+  return 'ok';
+}
+
+/** Người chơi kế tiếp còn trong cuộc, theo thứ tự lượt (danh sách players đã xếp theo lượt), vòng lại đầu */
+export function nextPlayerId(
+  players: { userId: number; eliminated: boolean }[],
+  currentUserId: number | null | undefined,
+): number | null {
+  const at = players.findIndex((p) => p.userId === currentUserId);
+  if (at < 0) return null;
+  for (let step = 1; step < players.length; step++) {
+    const p = players[(at + step) % players.length];
+    if (!p.eliminated) return p.userId;
+  }
+  return null;
+}
+
 export function secondsLeft(deadline: number | null | undefined, clockOffset: number, now = Date.now()): number {
   if (!deadline) return 0;
   return Math.max(0, Math.ceil((deadline - (now + clockOffset)) / 1000));

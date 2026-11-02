@@ -310,7 +310,7 @@ public class GameService {
         "GREEN", "xanh la", "BLUE", "xanh duong", "YELLOW", "vang", "BLACK", "den");
 
     // Chu cai co dau cua dap an; tu cu khong co phrase (hoac phrase khong khop do dai) thi dung value khong dau
-    private static List<Character> targetLetters(Word word) {
+    static List<Character> targetLetters(Word word) {
         if (word.getPhrase() != null) {
             List<Character> letters = displayLetters(word.getPhrase());
             if (letters.size() == word.getValue().length()) {

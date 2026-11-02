@@ -92,8 +92,7 @@
 .people-list,
 .member-list,
 .invite-list,
-.opponent-list,
-.chain-players {
+.opponent-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -312,32 +311,109 @@
   gap: 0.75rem;
 }
 
-.chain-players {
+/* Thu tu luot: moi nguoi mot o, nguoi dang choi co vong thoi gian quanh avatar */
+.chain-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0.15rem 0.1rem 0.4rem;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.5rem;
+  overflow-x: auto;
 }
 
-.chain-player {
-  display: inline-flex;
+.chain-seat {
+  flex: 0 0 auto;
+  display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.7rem;
-  border-radius: 999px;
+  gap: 0.55rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.4rem;
   border: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 0.9rem;
+  border-radius: 999px;
+  background: var(--surface);
+  max-width: 14rem;
 }
 
-.chain-player-turn {
+.chain-seat-turn {
+  --ring: var(--green);
   border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.chain-seat-warn {
+  --ring: var(--yellow);
+}
+
+.chain-seat-danger {
+  --ring: var(--danger);
+}
+
+.chain-seat-next {
+  border-style: dashed;
+  border-color: var(--primary);
+}
+
+.chain-seat-out {
+  opacity: 0.5;
+}
+
+.chain-seat-out .chain-seat-name {
+  text-decoration: line-through;
+}
+
+.chain-avatar {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.chain-seat-turn .chain-avatar {
+  background: conic-gradient(var(--ring) calc(var(--p, 1) * 360deg), var(--surface-2) 0);
+}
+
+.chain-avatar-inner {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-weight: 800;
+}
+
+.chain-seat-turn .chain-avatar-inner {
   background: var(--primary);
   color: var(--primary-text);
 }
 
-.chain-player-out {
-  text-decoration: line-through;
-  opacity: 0.55;
+.chain-seat-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.chain-seat-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chain-seat-me .chain-seat-name {
+  color: var(--primary);
+}
+
+.chain-seat-status {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chain-seat-turn .chain-seat-status {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .chain-list {
@@ -367,13 +443,93 @@
   color: var(--primary);
 }
 
-.chain-turn-label {
+.chain-turn {
+  padding: 0.9rem 1rem;
+  border: 2px solid transparent;
+}
+
+/* Toi luot minh: khung noi bat de nhan ra ngay */
+.chain-turn-mine {
+  border-color: var(--primary);
+}
+
+.chain-turn-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
+}
+
+.chain-turn-label {
+  font-weight: 800;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.chain-turn-mine .chain-turn-label {
+  color: var(--primary);
+}
+
+.chain-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 800;
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chain-clock-warn {
+  color: var(--yellow);
+}
+
+.chain-clock-danger {
+  color: var(--danger);
+  animation: chain-pulse 1s ease-in-out infinite;
+}
+
+@keyframes chain-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.chain-timebar {
+  height: 8px;
+  margin: 0.5rem 0 0.75rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.chain-timebar span {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  transform-origin: left center;
+  transition: transform 0.2s linear, background-color 0.3s;
+}
+
+.chain-timebar-warn span {
+  background: var(--yellow);
+}
+
+.chain-timebar-danger span {
+  background: var(--danger);
+}
+
+.chain-wait {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chain-clock-danger {
+    animation: none;
+  }
+
+  .chain-timebar span {
+    transition: none;
+  }
 }
 
 .chain-prefix {
@@ -526,4 +682,94 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+/* ----- Tùy chọn Đua đoán chữ ----- */
+.match-options {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+
+.option-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.option-group legend {
+  float: left;
+  min-width: 8.5rem;
+  margin-right: 0.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.option-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.9rem;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* Ẩn nút radio nhưng vẫn focus được bằng bàn phím */
+.option-pill input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.option-pill:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.option-pill-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.option-note {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* ----- Dòng gợi ý ----- */
+.hint {
+  padding: 0.6rem 0.5rem 0.7rem;
+  border: 1px dashed var(--green);
+  border-radius: var(--radius);
+}
+
+.hint-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.hint-head svg {
+  color: var(--yellow);
+}
+
+.hint-board {
+  margin-top: 0;
+}
+
+.hint-empty {
+  border: 2px dashed var(--tile-border);
+  background: transparent;
 }

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- 1.821 tu chi dung cho Noi tu (chain_only = true), sinh bang tools/build_chain_variants.py (02/11/2026):
+         - 935 bien the chinh ta cua tu da co (hoà/hòa, thuỷ/thủy, lý/lí, kỹ/kĩ...) de go kieu nao cung khong bi loai oan
+         - 886 tu 2 tieng con thieu trong tu dien tong hop underthesea (Ho Ngoc Duc + tudientv + Wiktionary, GPL-3.0)
+         ON CONFLICT DO NOTHING: khong dong toi tu da co. -->
+    <changeSet id="24" author="claude">
+        <createTable tableName="words_chain_import">
+            <column name="value" type="VARCHAR(255)"/>
+            <column name="part1" type="VARCHAR(255)"/>
+            <column name="part2" type="VARCHAR(255)"/>
+            <column name="phrase" type="VARCHAR(255)"/>
+            <column name="definition" type="VARCHAR(1000)"/>
+        </createTable>
+        <loadData tableName="words_chain_import" file="words-chain-variants.csv" relativeToChangelogFile="true"
+                  encoding="UTF-8" separator=",">
+            <column name="value" type="STRING"/>
+            <column name="part1" type="STRING"/>
+            <column name="part2" type="STRING"/>
+            <column name="phrase" type="STRING"/>
+            <column name="definition" type="STRING"/>
+        </loadData>
+        <sql>
+            INSERT INTO words (value, part1, part2, phrase, definition, level, active, chain_only, created_at)
+            SELECT value, part1, part2, phrase, NULLIF(definition, ''), 5, true, true, CURRENT_TIMESTAMP
+            FROM words_chain_import
+            ON CONFLICT (phrase) DO NOTHING
+        </sql>
+        <dropTable tableName="words_chain_import"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -63,7 +63,7 @@ public class RoomController {
     @PostMapping("/{code}/start")
     public ResponseEntity<RoomStateResponse> start(@PathVariable String code, @RequestBody GameTypeRequest request,
                                                    Principal principal) {
-        return ResponseEntity.ok(roomService.start(currentUserId(principal), code, request.getGameType()));
+        return ResponseEntity.ok(roomService.start(currentUserId(principal), code, request));
     }
 
     @PostMapping("/{code}/guess")

@@ -141,6 +141,12 @@ export interface MatchPlayer {
   colorRows?: CellColor[][] | null;
 }
 
+/** Gợi ý Đua đoán chữ: chữ cái đúng tại vị trí index */
+export interface HintLetter {
+  index: number;
+  letter: string;
+}
+
 export interface ChainWord {
   /** null = từ mở đầu do server đưa ra */
   userId: number | null;
@@ -164,9 +170,15 @@ export interface MatchState {
   myRows?: CellResult[][];
   answer?: string | null;
   definition?: string | null;
+  /** Có khi bật gợi ý: các chữ đã lộ */
+  hints?: HintLetter[];
+  /** Thời điểm lộ chữ tiếp theo; null = hết gợi ý */
+  nextHintAt?: number | null;
   // Nối từ
   currentUserId?: number | null;
   turnDeadline?: number | null;
+  /** Độ dài mỗi lượt (giây) */
+  turnSeconds?: number | null;
   requiredSyllable?: string | null;
   chain?: ChainWord[];
 }
