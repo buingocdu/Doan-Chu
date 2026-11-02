@@ -17,7 +17,7 @@ const MIN_PLAYERS = 2;
 const MINUTE_OPTIONS = [5, 10];
 
 const GAME_DESCRIPTIONS: Record<GameType, string> = {
-  WORD_GUESS: 'Mọi người đoán cùng một từ ghép, mỗi người 10 lượt. Ai đoán đúng trước sẽ thắng.',
+  WORD_GUESS: 'Đoán cùng một từ ghép: lần lượt đoán chung một bảng (20 lượt, kết quả chung) hoặc đua riêng (mỗi người 10 lượt, ai đúng trước thắng).',
   WORD_CHAIN: 'Lần lượt nối từ 2 tiếng: tiếng đầu phải trùng tiếng cuối của từ trước. Sai hoặc hết 30 giây bị loại.',
 };
 
@@ -32,6 +32,8 @@ export default function RoomPage() {
   // Tùy chọn Đua đoán chữ
   const [minutes, setMinutes] = useState(5);
   const [hints, setHints] = useState(false);
+  // Mặc định: lần lượt đoán chung một bảng
+  const [turnBased, setTurnBased] = useState(true);
   const [copied, setCopied] = useState(false);
 
   if (!user) return null;
@@ -53,7 +55,7 @@ export default function RoomPage() {
     setStarting(true);
     setActionError(null);
     try {
-      await start(gameType, gameType === 'WORD_GUESS' ? { minutes, hints } : undefined);
+      await start(gameType, gameType === 'WORD_GUESS' ? { minutes, hints, turnBased } : undefined);
     } catch (error) {
       setActionError(getErrorMessage(error, 'Không bắt đầu được ván.'));
     } finally {
@@ -138,6 +140,26 @@ export default function RoomPage() {
                 </fieldset>
                 {gameType === 'WORD_GUESS' && (
                   <div className="match-options">
+                    <fieldset className="option-group">
+                      <legend>Cách chơi</legend>
+                      {[true, false].map((on) => (
+                        <label key={String(on)} className={`option-pill${turnBased === on ? ' option-pill-active' : ''}`}>
+                          <input
+                            type="radio"
+                            name="turnBased"
+                            value={on ? 'turn' : 'race'}
+                            checked={turnBased === on}
+                            onChange={() => setTurnBased(on)}
+                          />
+                          {on ? 'Lần lượt' : 'Đua riêng'}
+                        </label>
+                      ))}
+                    </fieldset>
+                    <p className="muted option-note">
+                      {turnBased
+                        ? 'Cả phòng đoán chung một bảng, mỗi người một lượt 30 giây, tổng 20 lượt. Đoán ra thì cả phòng cùng thắng.'
+                        : 'Mỗi người một bảng riêng 10 lượt, ai đoán đúng trước sẽ thắng.'}
+                    </p>
                     <fieldset className="option-group">
                       <legend>Thời gian ván</legend>
                       {MINUTE_OPTIONS.map((m) => (

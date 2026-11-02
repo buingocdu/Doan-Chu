@@ -16,6 +16,9 @@ public class RoomConfig {
     // Dua doan chu: cac lua chon thoi gian van (phut) va khoang cach giua 2 goi y
     private List<Integer> guessMinuteOptions = List.of(5, 10);
     private Integer hintIntervalSeconds = 30;
+    // Dua doan chu lan luot: tong so luot chung cua ca phong va thoi gian moi luot
+    private Integer turnMaxAttempts = 20;
+    private Integer turnSeconds = 30;
     // Noi tu: thoi gian moi luot
     private Integer chainTurnSeconds = 30;
 
@@ -57,6 +60,22 @@ public class RoomConfig {
 
     public void setHintIntervalSeconds(Integer hintIntervalSeconds) {
         this.hintIntervalSeconds = hintIntervalSeconds;
+    }
+
+    public Integer getTurnMaxAttempts() {
+        return turnMaxAttempts;
+    }
+
+    public void setTurnMaxAttempts(Integer turnMaxAttempts) {
+        this.turnMaxAttempts = turnMaxAttempts;
+    }
+
+    public Integer getTurnSeconds() {
+        return turnSeconds;
+    }
+
+    public void setTurnSeconds(Integer turnSeconds) {
+        this.turnSeconds = turnSeconds;
     }
 
     public Integer getChainTurnSeconds() {

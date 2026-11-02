@@ -37,8 +37,11 @@ public class MatchStateDto {
     private List<HintDto> hints;
     /** Thoi diem lo goi y tiep theo; null = het goi y */
     private Long nextHintAt;
+    /** Che do lan luot: myRows la bang chung cua ca phong, rowAuthors[i] = nguoi doan hang i */
+    private Boolean turnBased;
+    private List<String> rowAuthors;
 
-    // Noi tu
+    // Noi tu va Dua doan chu lan luot
     private Long currentUserId;
     private Long turnDeadline;
     /** Do dai moi luot (giay), de client ve thanh thoi gian */

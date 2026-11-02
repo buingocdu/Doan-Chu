@@ -99,10 +99,11 @@ export const getRoomState = (code: string, since: number | null, afterMessageId:
     params: { ...(since !== null && { since }), ...(afterMessageId !== null && { afterMessageId }) },
   }).then((r) => r.data);
 
-/** Tùy chọn Đua đoán chữ: thời gian ván (phút) và gợi ý chữ cái */
+/** Tùy chọn Đua đoán chữ: thời gian ván (phút), gợi ý chữ cái, lần lượt đoán chung một bảng */
 export interface MatchOptions {
   minutes?: number;
   hints?: boolean;
+  turnBased?: boolean;
 }
 
 export const startMatch = (code: string, gameType: GameType, options: MatchOptions = {}) =>

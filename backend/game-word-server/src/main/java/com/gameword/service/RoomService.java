@@ -219,6 +219,7 @@ public class RoomService {
             .startedAt(LocalDateTime.now())
             .durationSeconds(guessMode ? guessMinutes(request.getMinutes()) * 60 : null)
             .hints(guessMode && Boolean.TRUE.equals(request.getHints()))
+            .turnBased(guessMode && Boolean.TRUE.equals(request.getTurnBased()))
             .build());
         engineOf(match).start(match, playerIds, announce(room));
         room.setGameType(type.name());
@@ -399,6 +400,7 @@ public class RoomService {
                 Stream.of(match.getWinnerId()))
             .collect(Collectors.toList()));
         boolean guessMode = GameType.WORD_GUESS.name().equals(match.getGameType());
+        boolean turnBased = guessMode && Boolean.TRUE.equals(match.getTurnBased());
 
         MatchStateDto.MatchStateDtoBuilder dto = MatchStateDto.builder()
             .id(match.getId())
@@ -413,9 +415,10 @@ public class RoomService {
                 .eliminated(p.getEliminated())
                 .eliminatedReason(p.getEliminatedReason())
                 .attempts(p.getAttempts())
-                .solved(p.getSolvedAt() != null)
+                // Lan luot: ket qua chung, ca phong cung thang khi co nguoi doan ra
+                .solved(turnBased ? match.getWinnerId() != null : p.getSolvedAt() != null)
                 // Doi thu chi thay mau, khong thay chu
-                .colorRows(guessMode ? moves.stream()
+                .colorRows(guessMode && !turnBased ? moves.stream()
                     .filter(m -> p.getUserId().equals(m.getUserId()))
                     .map(m -> Arrays.asList(m.getResult().split(",")))
                     .collect(Collectors.toList()) : null)
@@ -423,8 +426,9 @@ public class RoomService {
 
         if (guessMode) {
             Word word = wordService.getWord(match.getWordId());
+            // Lan luot: ai cung thay bang chung (co chu)
             List<List<CellResult>> myRows = moves.stream()
-                .filter(m -> Objects.equals(viewerId, m.getUserId()))
+                .filter(m -> turnBased || Objects.equals(viewerId, m.getUserId()))
                 .map(m -> GameService.toCells(m.getContent(), m.getResult()))
                 .collect(Collectors.toList());
             if (match.isPlaying() && Boolean.TRUE.equals(match.getHints())) {
@@ -441,8 +445,17 @@ public class RoomService {
             dto.endsAt(Times.epochMillis(match.getEndsAt()))
                 .wordLength(word.getValue().length())
                 .partLengths(GameService.partLengths(word))
-                .maxAttempts(gameConfig.getMaxAttempts())
+                .maxAttempts(turnBased ? roomConfig.getTurnMaxAttempts() : gameConfig.getMaxAttempts())
                 .myRows(myRows);
+            if (turnBased) {
+                dto.turnBased(true)
+                    .rowAuthors(moves.stream().map(m -> names.get(m.getUserId())).collect(Collectors.toList()));
+                if (match.isPlaying()) {
+                    dto.currentUserId(match.getCurrentUserId())
+                        .turnDeadline(Times.epochMillis(match.getTurnDeadline()))
+                        .turnSeconds(roomConfig.getTurnSeconds());
+                }
+            }
             // Dap an chi gui khi van da ket thuc
             if (!match.isPlaying()) {
                 dto.answer(GameService.answerOf(word)).definition(word.getDefinition());

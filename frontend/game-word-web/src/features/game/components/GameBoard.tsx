@@ -10,6 +10,10 @@ interface GameBoardProps {
   partLengths: number[];
   maxAttempts: number;
   shake: boolean;
+  /** Tên người đoán từng hàng (bảng chung) */
+  rowLabels?: string[];
+  /** Số hàng hiển thị (mặc định = maxAttempts); bảng dài chỉ hiện tới hàng đang nhập */
+  visibleRows?: number;
 }
 
 // Chỉ số ô của từng tiếng: [3, 4] -> [[0,1,2], [3,4,5,6]]
@@ -22,9 +26,19 @@ function groupColumns(partLengths: number[]): number[][] {
   });
 }
 
-export default function GameBoard({ rows, current, wordLength, partLengths, maxAttempts, shake }: GameBoardProps) {
+export default function GameBoard({
+  rows,
+  current,
+  wordLength,
+  partLengths,
+  maxAttempts,
+  shake,
+  rowLabels,
+  visibleRows = maxAttempts,
+}: GameBoardProps) {
   const groups = groupColumns(partLengths);
-  const style = { '--cols': wordLength, '--rows': maxAttempts, '--parts': partLengths.length } as CSSProperties;
+  const shown = Math.min(maxAttempts, visibleRows);
+  const style = { '--cols': wordLength, '--rows': shown, '--parts': partLengths.length } as CSSProperties;
 
   const renderTile = (rowIndex: number, col: number) => {
     const submitted = rows[rowIndex];
@@ -58,13 +72,18 @@ export default function GameBoard({ rows, current, wordLength, partLengths, maxA
       role="grid"
       aria-label={`Bảng đoán ${maxAttempts} lượt, từ gồm ${partLengths.length} tiếng: ${partLengths.join(' + ')} chữ cái`}
     >
-      {Array.from({ length: maxAttempts }, (_, rowIndex) => (
+      {Array.from({ length: shown }, (_, rowIndex) => (
         <div
           key={rowIndex}
           role="row"
           className={`board-row${rowIndex === rows.length && shake ? ' shake' : ''}`}
-          aria-label={`Lượt ${rowIndex + 1}`}
+          aria-label={`Lượt ${rowIndex + 1}${rowLabels?.[rowIndex] ? `: ${rowLabels[rowIndex]}` : ''}`}
         >
+          {rowLabels && (
+            <span className="row-label" aria-hidden="true">
+              {rowIndex + 1}. {rowLabels[rowIndex] ?? ''}
+            </span>
+          )}
           {groups.map((cols, g) => (
             <div key={g} className="tile-group">
               {cols.map((col) => renderTile(rowIndex, col))}

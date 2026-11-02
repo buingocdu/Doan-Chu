@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Crown, XCircle } from 'lucide-react';
+import { CheckCircle2, Crown, Hourglass, Users, XCircle } from 'lucide-react';
 import { getErrorMessage } from '../../../services/api';
 import type { MatchState } from '../../../types/api';
 import GameBoard from '../../game/components/GameBoard';
@@ -8,6 +8,12 @@ import { countLetters, formatGuess, normalizeParts, toDisplayLetters } from '../
 import Countdown from './Countdown';
 import HintRow from './HintRow';
 import MiniBoard from './MiniBoard';
+import TurnSeats from './TurnSeats';
+import { useNow } from '../hooks/useNow';
+import { msLeft, timeLevel } from '../utils/roomState';
+
+/** Bảng chung dài: chỉ hiện tới hàng đang nhập, tối thiểu 6 hàng */
+const MIN_VISIBLE_ROWS = 6;
 
 interface GuessRaceProps {
   match: MatchState;
@@ -16,7 +22,8 @@ interface GuessRaceProps {
   onGuess: (guess: string) => Promise<void>;
 }
 
-// Đua đoán chữ: bảng của mình (có chữ) + bảng thu nhỏ của đối thủ (chỉ màu)
+// Đua đoán chữ: bảng của mình (có chữ) + bảng thu nhỏ của đối thủ (chỉ màu).
+// Chế độ lần lượt: cả phòng chung một bảng, chỉ người tới lượt được đoán, kết quả chung.
 export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRaceProps) {
   const [input, setInput] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
@@ -29,7 +36,17 @@ export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRa
   const myRows = match.myRows ?? [];
   const me = match.players.find((p) => p.userId === myId);
   const playing = match.status === 'PLAYING';
-  const canGuess = playing && me !== undefined && !me.eliminated && !me.solved;
+  const turnBased = match.turnBased === true;
+  const myTurn = turnBased && playing && match.currentUserId === myId;
+  const canGuess = playing && me !== undefined && !me.eliminated && !me.solved && (!turnBased || myTurn);
+  const current = match.players.find((p) => p.userId === match.currentUserId);
+
+  // Đồng hồ lượt (chỉ chế độ lần lượt)
+  const now = useNow(200, turnBased && playing);
+  const turnLeft = turnBased && playing ? msLeft(match.turnDeadline, clockOffset, now) : 0;
+  const turnSecs = Math.ceil(turnLeft / 1000);
+  const turnFraction = Math.min(1, turnLeft / ((match.turnSeconds ?? 30) * 1000));
+  const level = timeLevel(turnSecs);
   const display = toDisplayLetters(input).slice(0, wordLength);
   const opponents = match.players.filter((p) => p.userId !== myId);
 
@@ -68,6 +85,7 @@ export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRa
   let status: string;
   if (!playing) status = '';
   else if (!me) status = 'Bạn đang xem ván này, sẽ được chơi từ ván sau.';
+  else if (turnBased) status = `Đã dùng ${myRows.length}/${maxAttempts} lượt chung`;
   else if (me.solved) status = 'Bạn đã đoán đúng!';
   else if (me.eliminated) status = 'Bạn đã hết lượt. Chờ người khác…';
   else status = `Còn ${maxAttempts - me.attempts}/${maxAttempts} lượt`;
@@ -82,14 +100,21 @@ export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRa
       </div>
 
       {!playing && (
-        <div className={`match-result card${match.winnerId === myId ? ' match-won' : ''}`} role="status">
+        <div
+          className={`match-result card${match.winnerId === myId || (turnBased && match.winnerId) ? ' match-won' : ''}`}
+          role="status"
+        >
           <p className="match-result-title">
-            <Crown size={20} aria-hidden="true" />
-            {match.winnerId === myId
-              ? 'Bạn thắng!'
-              : match.winnerName
-                ? `${match.winnerName} thắng!`
-                : 'Không ai đoán ra.'}
+            {turnBased ? <Users size={20} aria-hidden="true" /> : <Crown size={20} aria-hidden="true" />}
+            {turnBased
+              ? match.winnerId
+                ? `Cả phòng thắng! ${match.winnerId === myId ? 'Bạn' : match.winnerName} đoán ra ở lượt ${myRows.length}/${maxAttempts}.`
+                : `Cả phòng chưa đoán ra sau ${myRows.length} lượt.`
+              : match.winnerId === myId
+                ? 'Bạn thắng!'
+                : match.winnerName
+                  ? `${match.winnerName} thắng!`
+                  : 'Không ai đoán ra.'}
           </p>
           {match.answer && (
             <p>
@@ -98,6 +123,28 @@ export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRa
           )}
           {match.definition && <p className="muted definition-text">{match.definition.split('\n')[0]}</p>}
         </div>
+      )}
+
+      {turnBased && playing && (
+        <>
+          <TurnSeats
+            players={match.players}
+            currentUserId={match.currentUserId ?? null}
+            myId={myId}
+            seconds={turnSecs}
+            fraction={turnFraction}
+            level={level}
+          />
+          <div className={`chain-turn-head guess-turn${myTurn ? ' guess-turn-mine' : ''}`}>
+            <p className="chain-turn-label" aria-live="polite">
+              {myTurn ? 'Tới lượt bạn đoán!' : current ? `Lượt của ${current.username}` : ''}
+            </p>
+            <span className={`chain-clock chain-clock-${level}`} role="timer" aria-label={`Còn ${turnSecs} giây`}>
+              <Hourglass size={18} aria-hidden="true" />
+              {turnSecs}s
+            </span>
+          </div>
+        </>
       )}
 
       {playing && match.hints && (
@@ -118,6 +165,8 @@ export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRa
         partLengths={partLengths}
         maxAttempts={maxAttempts}
         shake={shake}
+        rowLabels={turnBased ? match.rowAuthors ?? [] : undefined}
+        visibleRows={turnBased ? Math.max(MIN_VISIBLE_ROWS, myRows.length + (playing ? 1 : 0)) : undefined}
       />
 
       <p className="notice" role="status" aria-live="polite">
@@ -139,7 +188,11 @@ export default function GuessRace({ match, myId, clockOffset, onGuess }: GuessRa
         />
       )}
 
-      {opponents.length > 0 && (
+      {turnBased && playing && !myTurn && me && !me.eliminated && (
+        <p className="muted guess-wait">Chờ tới lượt bạn. Cùng bàn đáp án trong chat phòng nhé!</p>
+      )}
+
+      {!turnBased && opponents.length > 0 && (
         <section className="opponents" aria-label="Đối thủ">
           <h2 className="section-title">Đối thủ</h2>
           <ul className="opponent-list">

@@ -60,6 +60,12 @@ public class RoomMatch {
     @Column(nullable = false)
     private Boolean hints = false;
 
+    // Dua doan chu che do lan luot: ca phong doan chung mot bang, tung nguoi mot luot,
+    // dung chung room.turn-max-attempts luot; dung current_user_id / turn_deadline nhu Noi tu
+    @Builder.Default
+    @Column(name = "turn_based", nullable = false)
+    private Boolean turnBased = false;
+
     // Noi tu: tu hop le gan nhat (chu thuong co dau)
     @Column(name = "last_word")
     private String lastWord;

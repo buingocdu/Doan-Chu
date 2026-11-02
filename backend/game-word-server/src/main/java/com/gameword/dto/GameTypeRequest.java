@@ -15,4 +15,6 @@ public class GameTypeRequest {
     private Integer minutes;
     /** Dua doan chu: bat goi y chu cai */
     private Boolean hints;
+    /** Dua doan chu: lan luot doan chung mot bang (null = dua rieng) */
+    private Boolean turnBased;
 }

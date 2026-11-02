@@ -773,3 +773,46 @@
   border: 2px dashed var(--tile-border);
   background: transparent;
 }
+
+/* ----- Đoán lần lượt (bảng chung) ----- */
+.guess-turn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+.guess-turn-mine {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.guess-wait {
+  text-align: center;
+  margin: 0;
+}
+
+/* Tên người đoán bên trái mỗi hàng; màn hẹp không đủ chỗ thì ẩn (vẫn có trong aria-label) */
+.board-row {
+  position: relative;
+}
+
+.row-label {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 7.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+  .row-label {
+    display: none;
+  }
+}

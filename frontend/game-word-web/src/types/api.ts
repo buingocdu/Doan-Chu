@@ -174,7 +174,10 @@ export interface MatchState {
   hints?: HintLetter[];
   /** Thời điểm lộ chữ tiếp theo; null = hết gợi ý */
   nextHintAt?: number | null;
-  // Nối từ
+  /** Đoán lần lượt: myRows là bảng chung cả phòng, rowAuthors[i] = người đoán hàng i */
+  turnBased?: boolean;
+  rowAuthors?: string[];
+  // Nối từ và Đoán lần lượt
   currentUserId?: number | null;
   turnDeadline?: number | null;
   /** Độ dài mỗi lượt (giây) */

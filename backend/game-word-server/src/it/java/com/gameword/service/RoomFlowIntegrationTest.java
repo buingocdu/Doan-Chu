@@ -156,6 +156,67 @@ class RoomFlowIntegrationTest {
         assertEquals(1, winners);
     }
 
+    @Test
+    void turnBasedGuessSharesBoardTurnsAndResult() {
+        Long a = newUser();
+        Long b = newUser();
+        String code = roomService.create(a, "WORD_GUESS").getCode();
+        roomService.join(b, code);
+        RoomStateResponse state = roomService.start(a, code,
+            GameTypeRequest.builder().gameType("WORD_GUESS").turnBased(true).build());
+        var match = state.getMatch();
+        assertTrue(match.getTurnBased());
+        assertEquals(20, match.getMaxAttempts());
+        assertEquals(30_000L, match.getTurnDeadline() - match.getStartedAt(), 1_000L);
+        String answer = jdbc.queryForObject("SELECT w.phrase FROM words w JOIN matches m ON m.word_id = w.id "
+            + "WHERE m.id = ?", String.class, match.getId());
+        String wrong = answer.replaceAll("[^ ]", "x");
+        Long first = match.getCurrentUserId();
+        Long second = first.equals(a) ? b : a;
+
+        assertThrows(RuntimeException.class, () -> roomService.guess(second, code, wrong, null));
+        state = roomService.guess(first, code, wrong, null);
+        assertEquals(second, state.getMatch().getCurrentUserId());
+        // Bang chung: nguoi kia cung thay hang vua doan, kem ten nguoi doan
+        var seen = roomService.getState(second, code, null, null).getMatch();
+        assertEquals(1, seen.getMyRows().size());
+        assertEquals(List.of(userService.getUser(first).getUsername()), seen.getRowAuthors());
+
+        // Het gio luot -> chuyen nguoi, khong mat luot chung
+        jdbc.update("UPDATE matches SET turn_deadline = now() - interval '1 second' WHERE id = ?", match.getId());
+        jdbc.update("UPDATE rooms SET deadline_at = now() - interval '1 second' WHERE code = ?", code);
+        state = roomService.getState(a, code, null, null);
+        assertEquals(first, state.getMatch().getCurrentUserId());
+        assertEquals(1, state.getMatch().getMyRows().size());
+
+        state = roomService.guess(first, code, answer, null);
+        assertEquals("FINISHED", state.getMatch().getStatus());
+        assertEquals(first, state.getMatch().getWinnerId());
+        // Ket qua chung: ca phong cung thang
+        assertTrue(state.getMatch().getPlayers().stream().allMatch(p -> p.getSolved()));
+    }
+
+    @Test
+    void turnBasedGuessEndsWhenSharedAttemptsRunOut() {
+        Long a = newUser();
+        Long b = newUser();
+        String code = roomService.create(a, "WORD_GUESS").getCode();
+        roomService.join(b, code);
+        var match = roomService.start(a, code,
+            GameTypeRequest.builder().gameType("WORD_GUESS").turnBased(true).build()).getMatch();
+        String answer = jdbc.queryForObject("SELECT w.phrase FROM words w JOIN matches m ON m.word_id = w.id "
+            + "WHERE m.id = ?", String.class, match.getId());
+        // Da dung 19/20 luot chung
+        jdbc.update("UPDATE match_players SET attempts = CASE WHEN turn_order = 0 THEN 10 ELSE 9 END "
+            + "WHERE match_id = ?", match.getId());
+
+        RoomStateResponse state = roomService.guess(match.getCurrentUserId(), code, answer.replaceAll("[^ ]", "x"), null);
+        assertEquals("FINISHED", state.getMatch().getStatus());
+        assertNull(state.getMatch().getWinnerId());
+        assertTrue(state.getMatch().getPlayers().stream().noneMatch(p -> p.getSolved()));
+        assertTrue(state.getMessages().stream().anyMatch(m -> m.getContent().contains("hết 20 lượt chung")));
+    }
+
     private Callable<String> guessTask(Long userId, String code, String answer) {
         return () -> {
             try {

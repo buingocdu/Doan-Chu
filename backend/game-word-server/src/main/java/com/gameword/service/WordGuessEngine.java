@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
 
-// Dua doan chu: moi nguoi doan cung mot tu, doc lap; nguoi dau tien doan dung thang (DOC-007 muc 3.2)
+// Dua doan chu: moi nguoi doan cung mot tu, doc lap; nguoi dau tien doan dung thang (DOC-007 muc 3.2).
+// Che do lan luot (turnBased): ca phong doan chung mot bang theo thu tu, dung chung room.turn-max-attempts luot;
+// het luot thi chuyen nguoi (khong mat luot chung); doan ra thi ca phong cung thang.
 @Component
 class WordGuessEngine implements MatchEngine {
 
@@ -59,26 +61,44 @@ class WordGuessEngine implements MatchEngine {
         match.setWordId(word.getId());
         int duration = match.getDurationSeconds() != null ? match.getDurationSeconds() : roomConfig.getGuessTimeSeconds();
         match.setEndsAt(match.getStartedAt().plusSeconds(duration));
+        boolean turnBased = Boolean.TRUE.equals(match.getTurnBased());
+        List<Long> order = new ArrayList<>(playerIds);
+        if (turnBased) {
+            Collections.shuffle(order);
+            match.setCurrentUserId(order.get(0));
+            match.setTurnDeadline(match.getStartedAt().plusSeconds(roomConfig.getTurnSeconds()));
+        }
         matchRepository.save(match);
-        for (int i = 0; i < playerIds.size(); i++) {
+        for (int i = 0; i < order.size(); i++) {
             playerRepository.save(MatchPlayer.builder()
                 .matchId(match.getId())
-                .userId(playerIds.get(i))
+                .userId(order.get(i))
                 .turnOrder(i)
                 .eliminated(false)
                 .attempts(0)
                 .build());
         }
+        String hintText = Boolean.TRUE.equals(match.getHints())
+            ? ", cứ " + roomConfig.getHintIntervalSeconds() + " giây lộ thêm 1 chữ cái gợi ý" : "";
+        if (turnBased) {
+            announce.accept("Bắt đầu Đoán chữ lần lượt! Từ gồm " + GameService.partLengths(word).size()
+                + " tiếng, cả phòng chung " + roomConfig.getTurnMaxAttempts() + " lượt, mỗi lượt "
+                + roomConfig.getTurnSeconds() + " giây, " + duration / 60 + " phút" + hintText
+                + ". Lượt đầu tiên: " + userService.getUser(order.get(0)).getUsername() + ".");
+            return;
+        }
         announce.accept("Bắt đầu Đua đoán chữ! Từ gồm " + GameService.partLengths(word).size() + " tiếng, mỗi người "
-            + gameConfig.getMaxAttempts() + " lượt, " + duration / 60 + " phút"
-            + (Boolean.TRUE.equals(match.getHints())
-                ? ", cứ " + roomConfig.getHintIntervalSeconds() + " giây lộ thêm 1 chữ cái gợi ý" : "")
+            + gameConfig.getMaxAttempts() + " lượt, " + duration / 60 + " phút" + hintText
             + ". Ai đoán đúng trước sẽ thắng.");
     }
 
     public void guess(RoomMatch match, Long userId, String rawGuess, Consumer<String> announce) {
         MatchPlayer player = playerRepository.findByMatchIdAndUserId(match.getId(), userId)
             .orElseThrow(() -> new RuntimeException("Not a player in this match"));
+        if (Boolean.TRUE.equals(match.getTurnBased())) {
+            guessInTurn(match, player, rawGuess, announce);
+            return;
+        }
         if (player.getEliminated() || player.getSolvedAt() != null) {
             throw new RuntimeException("No attempts left");
         }
@@ -114,12 +134,82 @@ class WordGuessEngine implements MatchEngine {
         finishIfNobodyLeft(match, word, now, announce);
     }
 
+    // Lan luot: dung luot cua minh; luot thu turn-max-attempts ma sai thi ca phong thua
+    private void guessInTurn(RoomMatch match, MatchPlayer player, String rawGuess, Consumer<String> announce) {
+        if (!player.getUserId().equals(match.getCurrentUserId())) {
+            throw new RuntimeException("Not your turn");
+        }
+        Word word = wordService.getWord(match.getWordId());
+        GameService.GuessEvaluation evaluation = GameService.evaluate(word, rawGuess);
+        LocalDateTime now = LocalDateTime.now();
+
+        player.setAttempts(player.getAttempts() + 1);
+        moveRepository.save(MatchMove.builder()
+            .matchId(match.getId())
+            .userId(player.getUserId())
+            .content(evaluation.phrase())
+            .result(evaluation.colors())
+            .correct(evaluation.correct())
+            .createdAt(now)
+            .build());
+
+        List<MatchPlayer> players = playerRepository.findByMatchIdOrderByTurnOrderAsc(match.getId());
+        int used = players.stream()
+            .mapToInt(p -> p.getUserId().equals(player.getUserId()) ? player.getAttempts() : p.getAttempts())
+            .sum();
+        int max = roomConfig.getTurnMaxAttempts();
+        String name = userService.getUser(player.getUserId()).getUsername();
+        if (evaluation.correct()) {
+            player.setSolvedAt(now);
+            playerRepository.save(player);
+            finish(match, player.getUserId(), now);
+            announce.accept(name + " đoán đúng ở lượt " + used + "/" + max + ". Cả phòng chiến thắng! Đáp án: "
+                + GameService.answerOf(word) + ".");
+            return;
+        }
+        playerRepository.save(player);
+        if (used >= max) {
+            finish(match, null, now);
+            announce.accept("Đã dùng hết " + max + " lượt chung, cả phòng chưa đoán ra. Đáp án: "
+                + GameService.answerOf(word) + ".");
+            return;
+        }
+        advanceTurn(match, player.getTurnOrder(), players);
+        matchRepository.save(match);
+    }
+
+    // Chuyen luot cho nguoi con choi ke tiep sau turnOrder (vong lai dau danh sach)
+    private void advanceTurn(RoomMatch match, int turnOrder, List<MatchPlayer> players) {
+        List<MatchPlayer> active = players.stream().filter(p -> !p.getEliminated()).toList();
+        MatchPlayer next = active.stream()
+            .filter(p -> p.getTurnOrder() > turnOrder)
+            .findFirst()
+            .orElse(active.get(0));
+        match.setCurrentUserId(next.getUserId());
+        match.setTurnDeadline(LocalDateTime.now().plusSeconds(roomConfig.getTurnSeconds()));
+    }
+
+    // Moi lan goi xu ly 1 su kien: het gio van, hoac (lan luot) het gio luot -> chuyen nguoi, khong mat luot chung
     @Override
     public void tick(RoomMatch match, LocalDateTime now, Consumer<String> announce) {
-        if (match.isPlaying() && match.getEndsAt() != null && !now.isBefore(match.getEndsAt())) {
+        if (!match.isPlaying()) {
+            return;
+        }
+        if (match.getEndsAt() != null && !now.isBefore(match.getEndsAt())) {
             finish(match, null, now);
-            announce.accept("Hết giờ! Không ai đoán ra. Đáp án: "
-                + GameService.answerOf(wordService.getWord(match.getWordId())) + ".");
+            announce.accept("Hết giờ! " + (Boolean.TRUE.equals(match.getTurnBased()) ? "Cả phòng chưa đoán ra" : "Không ai đoán ra")
+                + ". Đáp án: " + GameService.answerOf(wordService.getWord(match.getWordId())) + ".");
+            return;
+        }
+        if (Boolean.TRUE.equals(match.getTurnBased()) && match.getTurnDeadline() != null
+            && !now.isBefore(match.getTurnDeadline())) {
+            List<MatchPlayer> players = playerRepository.findByMatchIdOrderByTurnOrderAsc(match.getId());
+            players.stream().filter(p -> p.getUserId().equals(match.getCurrentUserId())).findFirst().ifPresent(p -> {
+                advanceTurn(match, p.getTurnOrder(), players);
+                matchRepository.save(match);
+                announce.accept(userService.getUser(p.getUserId()).getUsername() + " hết giờ, chuyển lượt cho "
+                    + userService.getUser(match.getCurrentUserId()).getUsername() + ".");
+            });
         }
     }
 
@@ -132,12 +222,23 @@ class WordGuessEngine implements MatchEngine {
                 p.setEliminatedReason(MatchPlayer.LEFT);
                 playerRepository.save(p);
                 finishIfNobodyLeft(match, wordService.getWord(match.getWordId()), LocalDateTime.now(), announce);
+                // Lan luot: nguoi dang toi luot roi phong thi chuyen luot ngay
+                if (match.isPlaying() && Boolean.TRUE.equals(match.getTurnBased())
+                    && userId.equals(match.getCurrentUserId())) {
+                    advanceTurn(match, p.getTurnOrder(), playerRepository.findByMatchIdOrderByTurnOrderAsc(match.getId()));
+                    matchRepository.save(match);
+                }
             });
     }
 
     @Override
     public LocalDateTime nextDeadline(RoomMatch match) {
-        return match.isPlaying() ? match.getEndsAt() : null;
+        if (!match.isPlaying()) {
+            return null;
+        }
+        LocalDateTime turn = match.getTurnDeadline();
+        return turn != null && Boolean.TRUE.equals(match.getTurnBased()) && turn.isBefore(match.getEndsAt())
+            ? turn : match.getEndsAt();
     }
 
     // Tat ca da het luot / bo cuoc ma chua ai dung -> van ket thuc khong co nguoi thang
@@ -154,6 +255,8 @@ class WordGuessEngine implements MatchEngine {
         match.setStatus(RoomMatch.FINISHED);
         match.setWinnerId(winnerId);
         match.setFinishedAt(now);
+        match.setCurrentUserId(null);
+        match.setTurnDeadline(null);
         matchRepository.save(match);
     }
 
