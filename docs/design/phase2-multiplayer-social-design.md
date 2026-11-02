@@ -38,7 +38,7 @@ related_documents: ["DOC-001", "DOC-002", "DOC-003", "DOC-004"]
 
 | Thuật ngữ | Định nghĩa |
 |-----------|------------|
-| Phòng (room) | Nhóm người chơi, định danh bằng mã 6 ký tự. Tồn tại qua nhiều ván |
+| Phòng (room) | Nhóm người chơi, định danh bằng mã 6 chữ số. Tồn tại qua nhiều ván |
 | Ván (match) | Một lượt chơi trong phòng, thuộc một chế độ (`WORD_GUESS` hoặc `WORD_CHAIN`) |
 | Chủ phòng (host) | Người tạo phòng; được bắt đầu ván, đổi chế độ chơi |
 | Người xem | Thành viên vào phòng khi ván đang diễn ra; xem và chat, chơi từ ván sau |
@@ -159,7 +159,7 @@ erDiagram
 
 | Bảng | Cột | Ghi chú |
 |------|-----|---------|
-| `rooms` | `id` PK, `code` VARCHAR(8) **unique**, `host_id` FK users, `game_type` VARCHAR(20), `status` VARCHAR(20) (`WAITING`/`PLAYING`/`CLOSED`), `current_match_id` BIGINT null, `version` BIGINT, `deadline_at` TIMESTAMP null, `created_at`, `updated_at` | Mã phòng: 6 ký tự từ bảng chữ không dễ nhầm (bỏ 0/O/1/I) |
+| `rooms` | `id` PK, `code` VARCHAR(8) **unique**, `host_id` FK users, `game_type` VARCHAR(20), `status` VARCHAR(20) (`WAITING`/`PLAYING`/`CLOSED`), `current_match_id` BIGINT null, `version` BIGINT, `deadline_at` TIMESTAMP null, `created_at`, `updated_at` | Mã phòng: 6 chữ số ngẫu nhiên (phòng tạo trước 2026-11-02 có thể còn mã chữ) |
 | `room_members` | `id` PK, `room_id` FK cascade, `user_id` FK, `joined_at` | unique(`room_id`,`user_id`); index `user_id` (danh sách phòng của tôi) |
 | `matches` | `id` PK, `room_id` FK cascade, `game_type`, `status` (`PLAYING`/`FINISHED`), `word_id` FK words null, `winner_id` FK users null, `current_user_id` null, `turn_deadline` null, `ends_at` null, `last_word` VARCHAR(255) null, `started_at`, `finished_at` null | `word_id`/`ends_at`: Đua đoán chữ. `current_user_id`/`turn_deadline`/`last_word`: Nối từ |
 | `match_players` | `id` PK, `match_id` FK cascade, `user_id` FK, `turn_order` INT, `eliminated` BOOLEAN, `eliminated_reason` VARCHAR(20) null, `attempts` INT, `solved_at` TIMESTAMP null | unique(`match_id`,`user_id`) |
@@ -215,7 +215,7 @@ Lỗi theo quy ước hiện có: HTTP 400 + `{ status, message }` với message
 
 ```json
 {
-  "code": "K7QM2X", "status": "PLAYING", "gameType": "WORD_GUESS", "hostId": 1,
+  "code": "482916", "status": "PLAYING", "gameType": "WORD_GUESS", "hostId": 1,
   "version": 42, "serverTime": 1793350000000,
   "members": [{ "userId": 1, "username": "an", "host": true }],
   "match": {

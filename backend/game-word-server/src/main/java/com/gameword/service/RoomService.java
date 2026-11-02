@@ -50,8 +50,8 @@ import java.util.stream.Stream;
 @Transactional
 public class RoomService {
 
-    // Bo cac ky tu de nham 0/O, 1/I
-    private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    // Ma phong chi gom chu so, de doc va go tren dien thoai
+    private static final String CODE_CHARS = "0123456789";
     private static final int CODE_LENGTH = 6;
     private static final int CHAIN_HISTORY = 50;
 

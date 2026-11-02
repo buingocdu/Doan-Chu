@@ -5,7 +5,7 @@ import { createRoom, getErrorMessage, getMyRooms } from '../../../services/api';
 import type { GameType, RoomSummary } from '../../../types/api';
 import { GAME_TYPE_LABELS } from '../utils/roomState';
 
-const CODE_PATTERN = /^[A-Z0-9]{6}$/;
+const CODE_PATTERN = /^\d{6}$/;
 
 export default function LobbyPage() {
   const navigate = useNavigate();
@@ -34,9 +34,9 @@ export default function LobbyPage() {
 
   const handleJoin = (event: FormEvent) => {
     event.preventDefault();
-    const code = joinCode.trim().toUpperCase();
+    const code = joinCode.trim();
     if (!CODE_PATTERN.test(code)) {
-      setError('Mã phòng gồm 6 ký tự chữ và số.');
+      setError('Mã phòng gồm 6 chữ số.');
       return;
     }
     navigate(`/rooms/${code}`);
@@ -83,10 +83,12 @@ export default function LobbyPage() {
               type="text"
               value={joinCode}
               maxLength={6}
-              placeholder="VD: K7QM2X"
+              placeholder="VD: 482916"
+              inputMode="numeric"
+              pattern="[0-9]*"
               autoComplete="off"
               onChange={(e) => {
-                setJoinCode(e.target.value.toUpperCase());
+                setJoinCode(e.target.value.replace(/\D/g, ''));
                 setError(null);
               }}
               aria-label="Mã phòng"
