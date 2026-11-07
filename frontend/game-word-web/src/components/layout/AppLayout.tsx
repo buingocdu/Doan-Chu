@@ -83,7 +83,7 @@ export default function AppLayout() {
       <main id="main" className="main">
         <Outlet />
       </main>
-      <footer className="app-footer muted">Game Đoán Chữ · Phase 2</footer>
+      <footer className="app-footer muted">Game Đoán Chữ</footer>
     </div>
   );
 }
