@@ -15,6 +15,10 @@ import type {
   LeaderboardEntry,
   LoginRequest,
   MessageResponse,
+  PuzzleImage,
+  PuzzleRankEntry,
+  PuzzleScoreRequest,
+  PuzzleScoreResponse,
   RegisterRequest,
   ResetPasswordRequest,
   RoomState,
@@ -152,6 +156,40 @@ export const getConversation = (friendId: number, afterId: number | null) =>
 export const sendDirectMessage = (friendId: number, content: string) =>
   API.post<ChatMessage>(`/messages/${friendId}`, { content }).then((r) => r.data);
 
+// ===== Ghép hình =====
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
+
+/** Địa chỉ ảnh công khai (dùng cho thẻ img, không cần token) */
+export const puzzleImageUrl = (id: number) => `${API_BASE}/puzzle/images/${id}/file`;
+
+export const getPuzzleImages = () => API.get<PuzzleImage[]>('/puzzle/images').then((r) => r.data);
+
+export const submitPuzzleScore = (data: PuzzleScoreRequest) =>
+  API.post<PuzzleScoreResponse>('/puzzle/scores', data).then((r) => r.data);
+
+export const getPuzzleLeaderboard = (imageId: number, rows: number, cols: number) =>
+  API.get<PuzzleRankEntry[]>('/puzzle/leaderboard', { params: { imageId, rows, cols } }).then((r) => r.data);
+
+// Quản trị kho ảnh (backend yêu cầu ADMIN)
+export const getAdminPuzzleImages = () => API.get<PuzzleImage[]>('/admin/puzzle/images').then((r) => r.data);
+
+export const uploadPuzzleImage = (file: File, title?: string) => {
+  const form = new FormData();
+  form.append('file', file);
+  if (title) form.append('title', title);
+  return API.post<PuzzleImage>('/admin/puzzle/images', form).then((r) => r.data);
+};
+
+export const updatePuzzleImage = (id: number, data: { title?: string; active?: boolean }) =>
+  API.put<PuzzleImage>(`/admin/puzzle/images/${id}`, data).then((r) => r.data);
+
+export const deletePuzzleImage = (id: number) => API.delete(`/admin/puzzle/images/${id}`).then(() => undefined);
+
+// Ảnh đang ẩn chỉ tải được bằng token quản trị
+export const getAdminPuzzleImageBlob = (id: number) =>
+  API.get<Blob>(`/admin/puzzle/images/${id}/file`, { responseType: 'blob' }).then((r) => r.data);
+
 // Thông báo lỗi backend (tiếng Anh/không dấu) -> tiếng Việt cho người dùng
 const KNOWN_MESSAGES: Record<string, string> = {
   'Invalid credentials': 'Sai tên tài khoản/email hoặc mật khẩu.',
@@ -197,6 +235,16 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Invalid password': 'Mật khẩu cần ít nhất 6 ký tự.',
   'Password too long': 'Mật khẩu quá dài (tối đa 72 ký tự không dấu).',
   'Invalid request': 'Yêu cầu không hợp lệ.',
+  // Ghép hình
+  'Image not found': 'Không tìm thấy ảnh.',
+  'Image file is required': 'Vui lòng chọn một file ảnh.',
+  'Image too large': 'Ảnh quá lớn (tối đa 8MB).',
+  'Image too small': 'Ảnh quá nhỏ, cạnh ngắn cần ít nhất 300 điểm ảnh.',
+  'Image dimensions too large': 'Kích thước ảnh quá lớn.',
+  'Unsupported image format': 'Định dạng ảnh không được hỗ trợ (dùng JPG, PNG, GIF hoặc BMP).',
+  'Title is required': 'Vui lòng nhập tên ảnh.',
+  'Invalid grid size': 'Số hàng/cột không hợp lệ (2–12).',
+  'Invalid result': 'Kết quả không hợp lệ.',
 };
 
 function isApiErrorBody(value: unknown): value is ApiErrorBody {

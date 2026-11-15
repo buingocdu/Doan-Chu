@@ -48,6 +48,8 @@ services:
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      # Tai khoan quan tri (phan cach bang dau phay)
+      ADMIN_USERNAMES: ${ADMIN_USERNAMES:-}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     networks:

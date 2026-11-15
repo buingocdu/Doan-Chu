@@ -100,6 +100,14 @@ Quan hệ chỉ là logic: changelog **không tạo foreign key**; entity `GameH
 | `correct` | BOOLEAN | Không | | |
 | `played_at` | TIMESTAMP | Có | | Gán bởi `@PrePersist` |
 
+### 3.4 Ghép hình (changelog v1.12.0, changeset 27–29)
+
+- `users.role` `VARCHAR(20)` NOT NULL mặc định `USER`; `ADMIN` được cấp qua `app.admin-usernames`.
+- `puzzle_images`: `id`, `title` (≤100), `content_type` (luôn `image/jpeg`), `width`, `height`, `size_bytes`, `active` (ẩn khỏi người chơi), `created_by` → `users.id`, `created_at`.
+- `puzzle_image_data`: `image_id` (PK, FK → `puzzle_images`, ON DELETE CASCADE), `data` `BYTEA`. Tách bảng riêng để các truy vấn danh sách không kéo theo nội dung ảnh. Ảnh lưu trong DB (đã thu nhỏ, thường vài trăm KB) để không cần volume/đĩa riêng khi triển khai.
+- `puzzle_scores`: `user_id`, `image_id` (cả hai ON DELETE CASCADE), `piece_rows`, `piece_cols`, `duration_ms`, `moves`, `created_at`; index `idx_puzzle_scores_rank (image_id, piece_rows, piece_cols, duration_ms)` cho bảng xếp hạng.
+- `OPEN QUESTION:` dung lượng DB tăng theo số ảnh; nếu kho ảnh lớn nên chuyển sang object storage.
+
 ## 4. Migration
 
 | Changeset | Tác giả | Nội dung |
@@ -166,3 +174,4 @@ Kết quả trên DB dev: 2017 bản ghi, 2000 active có `phrase`, 17 từ mẫ
 | 0.1 | 2026-10-24 | Khởi tạo từ changelog v1.0.0 |
 | 0.2 | 2026-10-24 | Thêm changeset 5 (`game_id`), cập nhật truy vấn |
 | 0.3 | 2026-10-24 | Cột `phrase`, nạp 2000 từ từ điển (changeset 6–8), bỏ seed trong code |
+| 0.4 | 2026-11-15 | Ghép hình: `users.role`, `puzzle_images`, `puzzle_image_data`, `puzzle_scores` (changeset 27–29) |

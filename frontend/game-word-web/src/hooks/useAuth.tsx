@@ -7,10 +7,12 @@ const USER_KEY = 'user';
 export interface AuthUser {
   id: number;
   username: string;
+  role: string;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
+  isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -35,12 +37,17 @@ function readStoredUser(): AuthUser | null {
     const token = localStorage.getItem(TOKEN_KEY);
     const raw: unknown = JSON.parse(localStorage.getItem(USER_KEY) ?? 'null');
     if (!token || typeof raw !== 'object' || raw === null) return null;
-    const { id, userId, username } = raw as { id?: unknown; userId?: unknown; username?: unknown };
+    const { id, userId, username, role } = raw as {
+      id?: unknown;
+      userId?: unknown;
+      username?: unknown;
+      role?: unknown;
+    };
     const resolvedId = typeof id === 'number' ? id : userId;
     if (typeof resolvedId !== 'number' || typeof username !== 'string') return null;
     const expiry = getTokenExpiry(token);
     if (expiry !== null && expiry <= Date.now()) return null;
-    return { id: resolvedId, username };
+    return { id: resolvedId, username, role: typeof role === 'string' ? role : 'USER' };
   } catch {
     return null;
   }
@@ -64,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applySession = useCallback((res: AuthResponse) => {
-    const next = { id: res.userId, username: res.username };
+    const next = { id: res.userId, username: res.username, role: res.role ?? 'USER' };
     localStorage.setItem(TOKEN_KEY, res.token);
     localStorage.setItem(USER_KEY, JSON.stringify(next));
     setUser(next);
@@ -89,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      isAdmin: user?.role === 'ADMIN',
       logout,
       login: async (username, password) => applySession(await authLogin({ username, password })),
       register: async (username, password, email) =>

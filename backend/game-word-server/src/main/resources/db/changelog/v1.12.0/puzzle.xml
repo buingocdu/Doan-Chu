@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Vai tro nguoi dung: USER (mac dinh) hoac ADMIN. Admin dau tien cau hinh qua app.admin-usernames -->
+    <changeSet id="27" author="claude">
+        <addColumn tableName="users">
+            <column name="role" type="VARCHAR(20)" defaultValue="USER">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Kho anh ghep hinh. Du lieu anh nam bang rieng de truy van danh sach khong keo theo noi dung anh -->
+    <changeSet id="28" author="claude">
+        <createTable tableName="puzzle_images">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="width" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="height" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="size_bytes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="BIGINT">
+                <constraints foreignKeyName="fk_puzzle_images_user" referencedTableName="users"
+                             referencedColumnNames="id" deleteCascade="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createTable tableName="puzzle_image_data">
+            <column name="image_id" type="BIGINT">
+                <constraints primaryKey="true" nullable="false" foreignKeyName="fk_puzzle_data_image"
+                             referencedTableName="puzzle_images" referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="data" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Ket qua choi: moi lan hoan thanh 1 luot, xep hang theo (anh, so hang, so cot) va thoi gian -->
+    <changeSet id="29" author="claude">
+        <createTable tableName="puzzle_scores">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_puzzle_scores_user" referencedTableName="users"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="image_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_puzzle_scores_image" referencedTableName="puzzle_images"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="piece_rows" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="piece_cols" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="duration_ms" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="moves" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="puzzle_scores" indexName="idx_puzzle_scores_rank">
+            <column name="image_id"/>
+            <column name="piece_rows"/>
+            <column name="piece_cols"/>
+            <column name="duration_ms"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

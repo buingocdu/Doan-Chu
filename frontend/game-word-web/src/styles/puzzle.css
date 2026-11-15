@@ -1,0 +1,482 @@
+/* ===== Ghép hình: chọn ảnh, độ khó, khu chơi, quản trị kho ảnh. Dùng token màu trong global.css ===== */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.puzzle-page {
+  max-width: 980px;
+}
+
+.puzzle-intro {
+  margin: -0.4rem 0 1rem;
+}
+
+.puzzle-setup {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem;
+}
+
+.puzzle-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ----- Kho ảnh ----- */
+.puzzle-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.puzzle-thumb {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.puzzle-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.puzzle-thumb span {
+  padding: 0.4rem 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.puzzle-thumb:hover {
+  border-color: var(--primary);
+}
+
+.puzzle-thumb:focus-visible,
+.puzzle-thumb:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.puzzle-thumb.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.puzzle-thumb-upload {
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 7rem;
+  border-style: dashed;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.puzzle-thumb-upload img {
+  height: 100%;
+}
+
+/* ----- Độ khó ----- */
+.puzzle-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+
+.puzzle-level {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.7rem 0.8rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.puzzle-level input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.puzzle-level span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.puzzle-level.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.puzzle-level:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.puzzle-custom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  max-width: 24rem;
+}
+
+.puzzle-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.puzzle-setup .btn-primary {
+  justify-self: start;
+}
+
+/* ----- Khu chơi ----- */
+.puzzle-play {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.puzzle-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.puzzle-toolbar-spacer {
+  flex: 1;
+}
+
+.puzzle-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.puzzle-stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  touch-action: pan-y;
+}
+
+.puzzle-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.puzzle-tray {
+  position: absolute;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.puzzle-board {
+  position: absolute;
+  overflow: visible;
+  border: 2px dashed var(--tile-filled-border);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+.puzzle-ghost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.puzzle-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.puzzle-grid line {
+  stroke: var(--tile-filled-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.45;
+}
+
+.puzzle-preview {
+  position: absolute;
+  object-fit: fill;
+  opacity: 0.92;
+  pointer-events: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px var(--primary);
+}
+
+.jigsaw-piece {
+  position: absolute;
+  cursor: grab;
+  touch-action: none;
+}
+
+.jigsaw-piece svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 35%));
+}
+
+.jigsaw-piece.is-dragging {
+  cursor: grabbing;
+}
+
+.jigsaw-piece.is-dragging svg {
+  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 40%));
+}
+
+.jigsaw-piece.is-placed {
+  cursor: default;
+  pointer-events: none;
+}
+
+.jigsaw-piece.is-placed svg {
+  filter: none;
+}
+
+.jigsaw-outline {
+  fill: none;
+  stroke: rgb(0 0 0 / 55%);
+  stroke-width: 1;
+}
+
+.jigsaw-piece.is-placed .jigsaw-outline {
+  stroke: rgb(0 0 0 / 12%);
+}
+
+/* ----- Kết quả, xếp hạng ----- */
+.puzzle-result {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.2rem;
+  text-align: center;
+}
+
+.puzzle-result p {
+  margin: 0;
+}
+
+.puzzle-result-time {
+  font-size: 2.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+}
+
+.puzzle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.puzzle-result .puzzle-actions {
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.puzzle-board-rank {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+}
+
+.puzzle-board-rank .section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.puzzle-rank-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.puzzle-rank-list li {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.puzzle-rank-list li.is-me {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  font-weight: 700;
+}
+
+.puzzle-rank-pos {
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.puzzle-rank-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- Quản trị ----- */
+.admin-upload {
+  display: grid;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 1.1rem;
+}
+
+.admin-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.2rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.admin-drop p {
+  margin: 0;
+}
+
+.admin-drop.is-over {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.admin-selected {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.admin-selected p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.admin-item.is-hidden {
+  opacity: 0.7;
+}
+
+.admin-thumb {
+  flex: none;
+  width: 84px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.admin-thumb-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.admin-item-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 10rem;
+}
+
+.admin-item-title {
+  overflow-wrap: anywhere;
+}
+
+.admin-rename {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.admin-rename input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.admin-item-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.admin-danger {
+  color: var(--danger);
+}
+
+@media (max-width: 520px) {
+  .puzzle-custom {
+    grid-template-columns: 1fr;
+  }
+}

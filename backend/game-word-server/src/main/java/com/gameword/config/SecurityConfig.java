@@ -2,6 +2,7 @@ package com.gameword.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -66,6 +67,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/words/**").permitAll()
                 .requestMatchers("/api/game/**").permitAll()
                 .requestMatchers("/api/history/**").authenticated()
+                // Anh ghep hinh tai bang the <img> nen khong co header Authorization
+                .requestMatchers(HttpMethod.GET, "/api/puzzle/images/*/file").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/leaderboard/**").permitAll()
                 .anyRequest().authenticated()
             )

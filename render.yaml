@@ -47,3 +47,6 @@ services:
       # Dia chi web (Vercel) de tao link dat lai mat khau, vd https://<app>.vercel.app
       - key: FRONTEND_URL
         sync: false
+      # Tai khoan quan tri ghep hinh (phan cach bang dau phay)
+      - key: ADMIN_USERNAMES
+        sync: false

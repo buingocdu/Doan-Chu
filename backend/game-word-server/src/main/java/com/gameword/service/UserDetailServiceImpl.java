@@ -2,6 +2,7 @@ package com.gameword.service;
 
 import com.gameword.model.User;
 import com.gameword.repository.UserRepository;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,7 +30,7 @@ public class UserDetailServiceImpl implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
             .withUsername(user.getUsername())
             .password(user.getPassword())
-            .authorities(Collections.emptyList())
+            .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole())))
             .build();
     }
 }

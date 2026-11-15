@@ -48,6 +48,8 @@ export interface AuthResponse {
   token: string;
   userId: number;
   username: string;
+  /** USER hoặc ADMIN; chỉ để ẩn/hiện giao diện, quyền thật do backend kiểm tra */
+  role?: string;
 }
 
 export interface LoginRequest {
@@ -233,4 +235,37 @@ export interface UserSearchResult {
   userId: number;
   username: string;
   relation: FriendRelation;
+}
+
+// ===== Ghép hình =====
+
+export interface PuzzleImage {
+  id: number;
+  title: string;
+  width: number;
+  height: number;
+  sizeBytes: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface PuzzleScoreRequest {
+  imageId: number;
+  rows: number;
+  cols: number;
+  durationMs: number;
+  moves: number;
+}
+
+export interface PuzzleScoreResponse {
+  rank: number;
+  bestMs: number;
+  personalBest: boolean;
+}
+
+export interface PuzzleRankEntry {
+  rank: number;
+  userId: number;
+  username: string;
+  durationMs: number;
 }

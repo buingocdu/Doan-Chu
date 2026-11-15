@@ -44,6 +44,11 @@ public class User {
     @Column(name = "token_version", nullable = false)
     private Integer tokenVersion = 0;
 
+    // USER hoac ADMIN; quyen that su duoc backend kiem tra moi request (khong tin JWT/frontend)
+    @Column(nullable = false)
+    @Builder.Default
+    private String role = "USER";
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

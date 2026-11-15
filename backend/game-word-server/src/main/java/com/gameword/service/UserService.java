@@ -50,6 +50,8 @@ public class UserService {
     private final MailService mailService;
     private final String frontendUrl;
     private final SecureRandom random = new SecureRandom();
+    // Ten tai khoan duoc tu dong cap quyen ADMIN (app.admin-usernames / ADMIN_USERNAMES), khong phan biet hoa thuong
+    private Set<String> adminUsernames = Set.of();
 
     public UserService(UserRepository userRepository, PasswordResetTokenRepository resetTokenRepository,
                        PasswordEncoder passwordEncoder, JwtUtil jwtUtil, MailService mailService,
@@ -60,6 +62,37 @@ public class UserService {
         this.jwtUtil = jwtUtil;
         this.mailService = mailService;
         this.frontendUrl = frontendUrl.replaceAll("/+$", "");
+    }
+
+    @Value("${app.admin-usernames:}")
+    void setAdminUsernames(String value) {
+        this.adminUsernames = java.util.Arrays.stream(value == null ? new String[0] : value.split(","))
+            .map(v -> v.trim().toLowerCase())
+            .filter(v -> !v.isEmpty())
+            .collect(Collectors.toUnmodifiableSet());
+    }
+
+    public boolean isConfiguredAdmin(String username) {
+        return username != null && adminUsernames.contains(username.toLowerCase());
+    }
+
+    // Nang quyen cac tai khoan da co trong cau hinh (chay luc khoi dong)
+    @Transactional
+    public int promoteConfiguredAdmins() {
+        int count = 0;
+        for (String name : adminUsernames) {
+            Optional<User> found = userRepository.findByUsername(name);
+            if (found.isEmpty()) {
+                found = userRepository.findAll().stream()
+                    .filter(u -> u.getUsername().equalsIgnoreCase(name)).findFirst();
+            }
+            if (found.isPresent() && !"ADMIN".equals(found.get().getRole())) {
+                found.get().setRole("ADMIN");
+                userRepository.save(found.get());
+                count++;
+            }
+        }
+        return count;
     }
 
     // Kiem tra o backend (khong tin frontend): giong quy tac trong frontend features/auth/utils/validation.ts
@@ -87,6 +120,7 @@ public class UserService {
             .gamesPlayed(0)
             .gamesWon(0)
             .tokenVersion(0)
+            .role(isConfiguredAdmin(username) ? "ADMIN" : "USER")
             .build();
         user = userRepository.save(user);
         return toAuthResponse(user);
@@ -182,6 +216,7 @@ public class UserService {
             .token(jwtUtil.generateToken(user.getUsername(), user.getTokenVersion()))
             .userId(user.getId())
             .username(user.getUsername())
+            .role(user.getRole())
             .build();
     }
 

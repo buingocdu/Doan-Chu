@@ -1,12 +1,12 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Gamepad2, History, KeyRound, LogIn, LogOut, MessageCircle, Trophy, UserPlus, Users } from 'lucide-react';
+import { Gamepad2, History, KeyRound, LogIn, LogOut, MessageCircle, Puzzle, Settings, Trophy, UserPlus, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useFriendSummary } from '../../features/social/hooks/useFriendSummary';
 
 const navClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? ' active' : ''}`;
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const socialCount = useFriendSummary(user !== null);
 
@@ -40,6 +40,16 @@ export default function AppLayout() {
                 <Users size={18} aria-hidden="true" />
                 <span className="hide-sm">Phòng</span>
               </NavLink>
+              <NavLink to="/puzzle" className={navClass}>
+                <Puzzle size={18} aria-hidden="true" />
+                <span className="hide-sm">Ghép hình</span>
+              </NavLink>
+              {isAdmin && (
+                <NavLink to="/admin/puzzle" className={navClass} aria-label="Quản trị kho ảnh">
+                  <Settings size={18} aria-hidden="true" />
+                  <span className="hide-sm">Quản trị</span>
+                </NavLink>
+              )}
               <NavLink
                 to="/friends"
                 className={navClass}

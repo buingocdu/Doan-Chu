@@ -2,6 +2,7 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import AdminRoute from './components/common/AdminRoute';
 import StatusMessage from './components/common/StatusMessage';
 import GamePage from './features/game/pages/GamePage';
 import AuthPage from './features/auth/pages/AuthPage';
@@ -12,6 +13,8 @@ import LeaderboardPage from './features/leaderboard/pages/LeaderboardPage';
 import HistoryPage from './features/history/pages/HistoryPage';
 import LobbyPage from './features/rooms/pages/LobbyPage';
 import RoomPage from './features/rooms/pages/RoomPage';
+import PuzzlePage from './features/puzzle/pages/PuzzlePage';
+import AdminPuzzlePage from './features/puzzle/pages/AdminPuzzlePage';
 import FriendsPage from './features/social/pages/FriendsPage';
 import ConversationPage from './features/social/pages/ConversationPage';
 
@@ -72,6 +75,22 @@ export default function App() {
                 <ProtectedRoute>
                   <RoomPage />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="puzzle"
+              element={
+                <ProtectedRoute>
+                  <PuzzlePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/puzzle"
+              element={
+                <AdminRoute>
+                  <AdminPuzzlePage />
+                </AdminRoute>
               }
             />
             <Route
