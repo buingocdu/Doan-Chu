@@ -183,20 +183,28 @@ export function scatterPositions(layout: Layout, count: number, rng: () => numbe
   }));
 }
 
-/** Giữ mảnh trong khung làm việc (tính cả lề ngàm) */
+/** Giữ ô của mảnh trong khung làm việc (phần ngàm lồi được phép chạm mép). Khung ghép nằm trọn trong vùng này nên
+ *  mọi vị trí đúng đều với tới được. */
 export function clampToWorkspace(layout: Layout, p: Point): Point {
-  const minX = layout.pad;
-  const maxX = layout.width - layout.cellW - layout.pad;
-  const minY = layout.pad;
-  const maxY = layout.height - layout.cellH - layout.pad;
-  return { x: Math.min(maxX, Math.max(minX, p.x)), y: Math.min(maxY, Math.max(minY, p.y)) };
+  const maxX = layout.width - layout.cellW;
+  const maxY = layout.height - layout.cellH;
+  return { x: Math.min(maxX, Math.max(0, p.x)), y: Math.min(maxY, Math.max(0, p.y)) };
 }
 
-/** Mảnh đang ở đủ gần vị trí đúng: hiện viền sáng khi kéo, thả ra thì tự nhảy về đúng chỗ */
+// Ngưỡng tự bắt rất sát để không thể dò vị trí đúng bằng cách rê mảnh quanh khung:
+// 5% cạnh ngắn của ô, kẹp trong khoảng [5, 12] đơn vị logic (đủ để chạm được trên điện thoại)
+export const SNAP_RATIO = 0.05;
+export const SNAP_MIN = 5;
+export const SNAP_MAX = 12;
+
+export function snapTolerance(layout: Layout): number {
+  return Math.min(SNAP_MAX, Math.max(SNAP_MIN, Math.min(layout.cellW, layout.cellH) * SNAP_RATIO));
+}
+
+/** Mảnh đang nằm sát vị trí đúng: viền sáng nhẹ khi kéo, thả ra thì tự nhảy về đúng chỗ */
 export function isNearHome(layout: Layout, p: Point, index: number): boolean {
   const home = homePosition(layout, index);
-  const threshold = Math.min(layout.cellW, layout.cellH) * 0.4;
-  return Math.abs(p.x - home.x) <= threshold && Math.abs(p.y - home.y) <= threshold;
+  return Math.hypot(p.x - home.x, p.y - home.y) <= snapTolerance(layout);
 }
 
 // Đường cong một ngàm, tọa độ (lệch dọc theo cạnh so với tâm, chiều cao) tính theo đơn vị cạnh ngắn của ô

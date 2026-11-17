@@ -11,6 +11,9 @@ import {
   homePosition,
   isEdgePiece,
   isNearHome,
+  SNAP_MAX,
+  SNAP_MIN,
+  snapTolerance,
   matchesFilter,
   LOGICAL_WIDTH,
   piecePath,
@@ -194,5 +197,42 @@ describe('bộ lọc mảnh viền', () => {
     expect(matchesFilter('inner', 4, 3, 3)).toBe(true);
     expect(matchesFilter('edge', 0, 3, 3)).toBe(true);
     expect(matchesFilter('inner', 0, 3, 3)).toBe(false);
+  });
+});
+
+describe('ngưỡng tự bắt', () => {
+  it('rất sát vị trí: chỉ vài đơn vị logic, kẹp trong [5, 12] ở mọi độ khó', () => {
+    for (const n of [2, 3, 4, 6, 8, 12]) {
+      const tol = snapTolerance(computeLayout(1.5, n, n));
+      expect(tol).toBeGreaterThanOrEqual(SNAP_MIN);
+      expect(tol).toBeLessThanOrEqual(SNAP_MAX);
+    }
+  });
+
+  it('lệch hơn ngưỡng một chút là không bắt, kể cả theo đường chéo', () => {
+    const layout = computeLayout(1.5, 4, 4);
+    const tol = snapTolerance(layout);
+    const home = homePosition(layout, 5);
+    expect(isNearHome(layout, { x: home.x + tol - 0.5, y: home.y }, 5)).toBe(true);
+    expect(isNearHome(layout, { x: home.x + tol + 1, y: home.y }, 5)).toBe(false);
+    // Đường chéo: từng trục còn trong ngưỡng nhưng khoảng cách thật đã vượt
+    const d = tol * 0.8;
+    expect(isNearHome(layout, { x: home.x + d, y: home.y + d }, 5)).toBe(false);
+    // Lệch nửa ô (mức bắt cũ) tuyệt đối không bắt
+    expect(isNearHome(layout, { x: home.x + layout.cellW * 0.3, y: home.y }, 5)).toBe(false);
+  });
+});
+
+describe('giới hạn kéo không chặn vị trí đúng', () => {
+  it('mọi mảnh đều kéo tới được đúng vị trí của mình (kể cả hàng trên cùng và cột ngoài cùng)', () => {
+    for (const compact of [false, true]) {
+      for (const aspect of [0.5, 1, 1.5, 3]) {
+        const layout = computeLayout(aspect, 5, 6, compact);
+        for (let i = 0; i < 30; i++) {
+          const home = homePosition(layout, i);
+          expect(clampToWorkspace(layout, home)).toEqual(home);
+        }
+      }
+    }
   });
 });

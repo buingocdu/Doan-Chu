@@ -139,7 +139,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     // Loé sáng viền một lúc ngắn khi mảnh dính vào khung
     setFlashIndex(index);
     window.clearTimeout(flashTimer.current);
-    flashTimer.current = window.setTimeout(() => setFlashIndex(null), 800);
+    flashTimer.current = window.setTimeout(() => setFlashIndex(null), 600);
   };
 
   const handlePointerDown = useCallback((index: number, event: PointerEvent<HTMLDivElement>) => {
