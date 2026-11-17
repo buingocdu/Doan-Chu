@@ -4,6 +4,7 @@ import JigsawPiece from './JigsawPiece';
 import {
   buildEdges,
   clampToWorkspace,
+  COMPACT_BREAKPOINT,
   computeLayout,
   createRng,
   formatDuration,
@@ -26,8 +27,6 @@ interface PuzzleBoardProps {
   aspect: number;
   rows: number;
   cols: number;
-  /** Hiện ảnh mờ làm nền trên khung */
-  showGhost: boolean;
   onFinish: (result: PuzzleResult) => void;
   onExit: () => void;
 }
@@ -39,9 +38,11 @@ interface DragState {
   startPos: Point;
 }
 
-export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, onFinish, onExit }: PuzzleBoardProps) {
+export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, onExit }: PuzzleBoardProps) {
   const total = rows * cols;
-  const layout = useMemo(() => computeLayout(aspect, rows, cols), [aspect, rows, cols]);
+  // Bố cục chọn một lần lúc vào ván (theo bề ngang màn hình) để xoay màn hình không làm xáo trộn các mảnh
+  const [compact] = useState(() => window.innerWidth < COMPACT_BREAKPOINT);
+  const layout = useMemo(() => computeLayout(aspect, rows, cols, compact), [aspect, rows, cols, compact]);
   // Seed cố định trong suốt ván: hình dạng mảnh và cách rải không đổi khi render lại
   const seed = useMemo(() => Math.floor(Math.random() * 2 ** 31), []);
   const edges = useMemo(() => buildEdges(rows, cols, createRng(seed)), [rows, cols, seed]);
@@ -56,6 +57,9 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
   const [moves, setMoves] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
+  const [glowIndex, setGlowIndex] = useState<number | null>(null);
+  const [flashIndex, setFlashIndex] = useState<number | null>(null);
+  const flashTimer = useRef<number | undefined>(undefined);
   const [elapsed, setElapsed] = useState(0);
   const [scale, setScale] = useState(1);
 
@@ -97,6 +101,8 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
     return () => window.clearInterval(timer);
   }, [done]);
 
+  useEffect(() => () => window.clearTimeout(flashTimer.current), []);
+
   useEffect(() => {
     if (!done || finishedRef.current) return;
     finishedRef.current = true;
@@ -122,6 +128,10 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
     next[index] = true;
     placedRef.current = next;
     setPlaced(next);
+    // Loé sáng viền một lúc ngắn khi mảnh dính vào khung
+    setFlashIndex(index);
+    window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlashIndex(null), 800);
   };
 
   const handlePointerDown = useCallback((index: number, event: PointerEvent<HTMLDivElement>) => {
@@ -156,6 +166,8 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
         y: drag.startPos.y + (event.clientY - drag.startPointer.y) / k,
       });
       commitPositions(next);
+      const near = isNearHome(layout, next[drag.index], drag.index);
+      setGlowIndex((prev) => (near ? drag.index : prev === drag.index ? null : prev));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [layout],
@@ -167,6 +179,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
       if (!drag || drag.pointerId !== event.pointerId) return;
       dragRef.current = null;
       setDraggingIndex(null);
+      setGlowIndex(null);
       setMoves((m) => m + 1);
       if (isNearHome(layout, positionsRef.current[drag.index], drag.index)) {
         const next = positionsRef.current.slice();
@@ -211,7 +224,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
           onClick={() => setShowPreview((v) => !v)}
         >
           {showPreview ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-          {showPreview ? 'Ẩn ảnh mẫu' : 'Xem ảnh mẫu'}
+          {showPreview ? 'Thu nhỏ ảnh mẫu' : 'Phóng to ảnh mẫu'}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={placeHint} disabled={done}>
           <Lightbulb size={16} aria-hidden="true" /> Gợi ý
@@ -241,16 +254,15 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
             style={{ left: board.x, top: board.y, width: board.w, height: board.h }}
             aria-hidden="true"
           >
-            {showGhost && <img src={imageUrl} alt="" draggable={false} className="puzzle-ghost" />}
-            <svg width={board.w} height={board.h} className="puzzle-grid">
-              {Array.from({ length: cols - 1 }, (_, i) => (
-                <line key={`c${i}`} x1={(i + 1) * layout.cellW} y1={0} x2={(i + 1) * layout.cellW} y2={board.h} />
-              ))}
-              {Array.from({ length: rows - 1 }, (_, i) => (
-                <line key={`r${i}`} x1={0} y1={(i + 1) * layout.cellH} x2={board.w} y2={(i + 1) * layout.cellH} />
-              ))}
-            </svg>
           </div>
+
+          <figure
+            className="puzzle-thumb-ref"
+            style={{ left: layout.thumb.x, top: layout.thumb.y, width: layout.thumb.w }}
+          >
+            <img src={imageUrl} alt="Hình mẫu" draggable={false} style={{ height: layout.thumb.h }} />
+            <figcaption>Hình mẫu</figcaption>
+          </figure>
 
           {paths.map((path, index) => (
             <JigsawPiece
@@ -270,6 +282,8 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, showGhost, o
               z={placed[index] ? 1 : zOrder[index]}
               placed={placed[index]}
               dragging={draggingIndex === index}
+              glow={glowIndex === index}
+              flash={flashIndex === index}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}

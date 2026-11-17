@@ -15,6 +15,8 @@ import type {
   LeaderboardEntry,
   LoginRequest,
   MessageResponse,
+  PuzzleGame,
+  PuzzleGameRequest,
   PuzzleImage,
   PuzzleRankEntry,
   PuzzleScoreRequest,
@@ -163,13 +165,13 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
 /** Địa chỉ ảnh công khai (dùng cho thẻ img, không cần token) */
 export const puzzleImageUrl = (id: number) => `${API_BASE}/puzzle/images/${id}/file`;
 
-export const getPuzzleImages = () => API.get<PuzzleImage[]>('/puzzle/images').then((r) => r.data);
+export const getPuzzleGames = () => API.get<PuzzleGame[]>('/puzzle/games').then((r) => r.data);
 
 export const submitPuzzleScore = (data: PuzzleScoreRequest) =>
   API.post<PuzzleScoreResponse>('/puzzle/scores', data).then((r) => r.data);
 
-export const getPuzzleLeaderboard = (imageId: number, rows: number, cols: number) =>
-  API.get<PuzzleRankEntry[]>('/puzzle/leaderboard', { params: { imageId, rows, cols } }).then((r) => r.data);
+export const getPuzzleLeaderboard = (gameId: number) =>
+  API.get<PuzzleRankEntry[]>('/puzzle/leaderboard', { params: { gameId } }).then((r) => r.data);
 
 // Quản trị kho ảnh (backend yêu cầu ADMIN)
 export const getAdminPuzzleImages = () => API.get<PuzzleImage[]>('/admin/puzzle/images').then((r) => r.data);
@@ -185,6 +187,16 @@ export const updatePuzzleImage = (id: number, data: { title?: string; active?: b
   API.put<PuzzleImage>(`/admin/puzzle/images/${id}`, data).then((r) => r.data);
 
 export const deletePuzzleImage = (id: number) => API.delete(`/admin/puzzle/images/${id}`).then(() => undefined);
+
+export const getAdminPuzzleGames = () => API.get<PuzzleGame[]>('/admin/puzzle/games').then((r) => r.data);
+
+export const createPuzzleGame = (data: PuzzleGameRequest) =>
+  API.post<PuzzleGame>('/admin/puzzle/games', data).then((r) => r.data);
+
+export const updatePuzzleGame = (id: number, data: { title?: string; active?: boolean }) =>
+  API.put<PuzzleGame>(`/admin/puzzle/games/${id}`, data).then((r) => r.data);
+
+export const deletePuzzleGame = (id: number) => API.delete(`/admin/puzzle/games/${id}`).then(() => undefined);
 
 // Ảnh đang ẩn chỉ tải được bằng token quản trị
 export const getAdminPuzzleImageBlob = (id: number) =>
@@ -237,6 +249,7 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Invalid request': 'Yêu cầu không hợp lệ.',
   // Ghép hình
   'Image not found': 'Không tìm thấy ảnh.',
+  'Puzzle not found': 'Game ghép hình này không còn nữa hoặc đang bị ẩn.',
   'Image file is required': 'Vui lòng chọn một file ảnh.',
   'Image too large': 'Ảnh quá lớn (tối đa 8MB).',
   'Image too small': 'Ảnh quá nhỏ, cạnh ngắn cần ít nhất 300 điểm ảnh.',

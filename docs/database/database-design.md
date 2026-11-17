@@ -100,12 +100,13 @@ Quan hệ chỉ là logic: changelog **không tạo foreign key**; entity `GameH
 | `correct` | BOOLEAN | Không | | |
 | `played_at` | TIMESTAMP | Có | | Gán bởi `@PrePersist` |
 
-### 3.4 Ghép hình (changelog v1.12.0, changeset 27–29)
+### 3.4 Ghép hình (changelog v1.12.0 và v1.13.0, changeset 27–31)
 
 - `users.role` `VARCHAR(20)` NOT NULL mặc định `USER`; `ADMIN` được cấp qua `app.admin-usernames`.
-- `puzzle_images`: `id`, `title` (≤100), `content_type` (luôn `image/jpeg`), `width`, `height`, `size_bytes`, `active` (ẩn khỏi người chơi), `created_by` → `users.id`, `created_at`.
+- `puzzle_images`: kho ảnh. `id`, `title` (≤100), `content_type` (luôn `image/jpeg`), `width`, `height`, `size_bytes`, `active`, `created_by` → `users.id`, `created_at`.
 - `puzzle_image_data`: `image_id` (PK, FK → `puzzle_images`, ON DELETE CASCADE), `data` `BYTEA`. Tách bảng riêng để các truy vấn danh sách không kéo theo nội dung ảnh. Ảnh lưu trong DB (đã thu nhỏ, thường vài trăm KB) để không cần volume/đĩa riêng khi triển khai.
-- `puzzle_scores`: `user_id`, `image_id` (cả hai ON DELETE CASCADE), `piece_rows`, `piece_cols`, `duration_ms`, `moves`, `created_at`; index `idx_puzzle_scores_rank (image_id, piece_rows, piece_cols, duration_ms)` cho bảng xếp hạng.
+- `puzzle_games`: game admin tạo sẵn. `id`, `title`, `image_id` (FK → `puzzle_images`, ON DELETE CASCADE), `piece_rows`, `piece_cols`, `active`, `created_by`, `created_at`.
+- `puzzle_scores`: `user_id`, `game_id` (cả hai ON DELETE CASCADE), `duration_ms`, `moves`, `created_at`; index `idx_puzzle_scores_game_rank (game_id, duration_ms)` cho bảng xếp hạng. Changeset 31 giữ kết quả cũ: mỗi bộ (ảnh, hàng, cột) đã có người chơi được chuyển thành một game (tên theo ảnh).
 - `OPEN QUESTION:` dung lượng DB tăng theo số ảnh; nếu kho ảnh lớn nên chuyển sang object storage.
 
 ## 4. Migration
@@ -175,3 +176,4 @@ Kết quả trên DB dev: 2017 bản ghi, 2000 active có `phrase`, 17 từ mẫ
 | 0.2 | 2026-10-24 | Thêm changeset 5 (`game_id`), cập nhật truy vấn |
 | 0.3 | 2026-10-24 | Cột `phrase`, nạp 2000 từ từ điển (changeset 6–8), bỏ seed trong code |
 | 0.4 | 2026-11-15 | Ghép hình: `users.role`, `puzzle_images`, `puzzle_image_data`, `puzzle_scores` (changeset 27–29) |
+| 0.5 | 2026-11-15 | Ghép hình: bảng `puzzle_games`, `puzzle_scores` gắn `game_id` (changeset 30–31) |

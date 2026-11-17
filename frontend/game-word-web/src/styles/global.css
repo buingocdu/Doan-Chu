@@ -1005,11 +1005,40 @@ nav {
     font-size: 1rem;
   }
 
+  /* Nhiều mục điều hướng: thu gọn khoảng đệm và cho cuộn ngang thay vì bị cắt */
+  .app-header {
+    gap: 0.4rem;
+  }
+
+  .app-header nav {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-header nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-header .nav-link {
+    flex: none;
+    padding: 0.45rem 0.5rem;
+  }
+
   .main {
     padding-top: 1rem;
   }
 
   .key {
     height: 3rem;
+  }
+}
+
+/* Điện thoại nhỏ: chỉ giữ logo để thanh điều hướng đủ chỗ (liên kết đã có aria-label) */
+@media (max-width: 460px) {
+  .brand span:last-child {
+    display: none;
   }
 }

@@ -18,5 +18,6 @@
     <include file="v1.10.0/match-options.xml" relativeToChangelogFile="true"/>
     <include file="v1.11.0/match-turn-based.xml" relativeToChangelogFile="true"/>
     <include file="v1.12.0/puzzle.xml" relativeToChangelogFile="true"/>
+    <include file="v1.13.0/puzzle-games.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

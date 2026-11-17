@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Game ghep hinh do admin tao san: 1 anh trong kho + luoi hang x cot co dinh. Nguoi choi chon game va choi luon -->
+    <changeSet id="30" author="claude">
+        <createTable tableName="puzzle_games">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="image_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_puzzle_games_image" referencedTableName="puzzle_images"
+                             referencedColumnNames="id" deleteCascade="true"/>
+            </column>
+            <column name="piece_rows" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="piece_cols" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="BIGINT">
+                <constraints foreignKeyName="fk_puzzle_games_user" referencedTableName="users" referencedColumnNames="id"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="puzzle_games" indexName="idx_puzzle_games_image">
+            <column name="image_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Xep hang gan voi game thay vi (anh, hang, cot). Ket qua cu duoc giu: moi bo (anh, hang, cot) da co nguoi choi
+         duoc tao thanh 1 game (ten theo anh) va ket qua gan vao game do -->
+    <changeSet id="31" author="claude">
+        <addColumn tableName="puzzle_scores">
+            <column name="game_id" type="BIGINT"/>
+        </addColumn>
+        <sql>
+            INSERT INTO puzzle_games (title, image_id, piece_rows, piece_cols, active, created_at)
+            SELECT i.title, s.image_id, s.piece_rows, s.piece_cols, TRUE, NOW()
+            FROM (SELECT DISTINCT image_id, piece_rows, piece_cols FROM puzzle_scores) s
+            JOIN puzzle_images i ON i.id = s.image_id
+        </sql>
+        <sql>
+            UPDATE puzzle_scores s SET game_id = g.id
+            FROM puzzle_games g
+            WHERE g.image_id = s.image_id AND g.piece_rows = s.piece_rows AND g.piece_cols = s.piece_cols
+        </sql>
+        <addNotNullConstraint tableName="puzzle_scores" columnName="game_id" columnDataType="BIGINT"/>
+        <addForeignKeyConstraint baseTableName="puzzle_scores" baseColumnNames="game_id"
+                                 constraintName="fk_puzzle_scores_game"
+                                 referencedTableName="puzzle_games" referencedColumnNames="id" onDelete="CASCADE"/>
+        <dropIndex tableName="puzzle_scores" indexName="idx_puzzle_scores_rank"/>
+        <dropColumn tableName="puzzle_scores" columnName="image_id"/>
+        <dropColumn tableName="puzzle_scores" columnName="piece_rows"/>
+        <dropColumn tableName="puzzle_scores" columnName="piece_cols"/>
+        <createIndex tableName="puzzle_scores" indexName="idx_puzzle_scores_game_rank">
+            <column name="game_id"/>
+            <column name="duration_ms"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

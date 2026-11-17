@@ -14,20 +14,15 @@ public interface PuzzleScoreRepository extends JpaRepository<PuzzleScore, Long> 
 
     // Moi nguoi chi tinh ket qua tot nhat: [userId, username, durationMs]
     @Query("select s.userId, u.username, min(s.durationMs) from PuzzleScore s, User u "
-        + "where u.id = s.userId and s.imageId = :imageId and s.rows = :rows and s.cols = :cols "
+        + "where u.id = s.userId and s.gameId = :gameId "
         + "group by s.userId, u.username order by min(s.durationMs) asc, s.userId asc")
-    List<Object[]> bestPerUser(@Param("imageId") Long imageId, @Param("rows") int rows,
-                               @Param("cols") int cols, Pageable pageable);
+    List<Object[]> bestPerUser(@Param("gameId") Long gameId, Pageable pageable);
 
-    @Query("select min(s.durationMs) from PuzzleScore s where s.userId = :userId and s.imageId = :imageId "
-        + "and s.rows = :rows and s.cols = :cols")
-    Long bestOf(@Param("userId") Long userId, @Param("imageId") Long imageId,
-                @Param("rows") int rows, @Param("cols") int cols);
+    @Query("select min(s.durationMs) from PuzzleScore s where s.userId = :userId and s.gameId = :gameId")
+    Long bestOf(@Param("userId") Long userId, @Param("gameId") Long gameId);
 
     // So nguoi choi co ket qua tot nhat nhanh hon moc nay
-    @Query(value = "select count(*) from (select user_id from puzzle_scores "
-        + "where image_id = :imageId and piece_rows = :rows and piece_cols = :cols "
+    @Query(value = "select count(*) from (select user_id from puzzle_scores where game_id = :gameId "
         + "group by user_id having min(duration_ms) < :durationMs) t", nativeQuery = true)
-    long countFasterUsers(@Param("imageId") Long imageId, @Param("rows") int rows,
-                          @Param("cols") int cols, @Param("durationMs") long durationMs);
+    long countFasterUsers(@Param("gameId") Long gameId, @Param("durationMs") long durationMs);
 }

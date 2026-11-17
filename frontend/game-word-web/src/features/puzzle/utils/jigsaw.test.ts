@@ -3,8 +3,10 @@ import {
   buildEdges,
   clampGrid,
   clampToWorkspace,
+  COMPACT_LOGICAL_WIDTH,
   computeLayout,
   createRng,
+  difficultyLabel,
   formatDuration,
   homePosition,
   isNearHome,
@@ -132,5 +134,42 @@ describe('formatDuration', () => {
     expect(formatDuration(65_400)).toBe('1:05');
     expect(formatDuration(65_400, true)).toBe('1:05.4');
     expect(formatDuration(-5)).toBe('0:00');
+  });
+});
+
+describe('hình mẫu thu nhỏ', () => {
+  it('nằm trong lề phải, không đè lên khung ghép ở mọi tỉ lệ ảnh', () => {
+    for (const aspect of [0.4, 0.75, 1, 1.5, 2.5, 4]) {
+      const layout = computeLayout(aspect, 4, 4);
+      expect(layout.thumb.x).toBeGreaterThanOrEqual(layout.board.x + layout.board.w);
+      expect(layout.thumb.x + layout.thumb.w).toBeLessThanOrEqual(layout.width);
+      expect(layout.thumb.w / layout.thumb.h).toBeCloseTo(aspect);
+    }
+  });
+});
+
+describe('difficultyLabel', () => {
+  it('xếp loại theo số mảnh', () => {
+    expect(difficultyLabel(3, 3)).toBe('Dễ');
+    expect(difficultyLabel(4, 4)).toBe('Vừa');
+    expect(difficultyLabel(6, 6)).toBe('Khó');
+    expect(difficultyLabel(8, 8)).toBe('Rất khó');
+  });
+});
+
+describe('bố cục gọn cho điện thoại', () => {
+  it('khung chiếm gần hết bề ngang, hình mẫu ở lề phải không đè khung, mọi mảnh rải trong khay', () => {
+    for (const aspect of [0.5, 1, 1.5, 3]) {
+      const layout = computeLayout(aspect, 4, 4, true);
+      expect(layout.width).toBe(COMPACT_LOGICAL_WIDTH);
+      expect(layout.board.x + layout.board.w).toBeLessThanOrEqual(layout.thumb.x);
+      expect(layout.thumb.x + layout.thumb.w).toBeLessThanOrEqual(layout.width);
+      const points = scatterPositions(layout, 16, createRng(3));
+      for (const p of points) expect(p.x + layout.cellW).toBeLessThanOrEqual(layout.width);
+    }
+    // Ảnh ngang: khung rộng hơn nhiều so với bố cục rộng sau khi co theo màn hình 390px
+    const compact = computeLayout(1.5, 3, 3, true);
+    const wide = computeLayout(1.5, 3, 3, false);
+    expect(compact.board.w / compact.width).toBeGreaterThan((wide.board.w / wide.width) * 1.1);
   });
 });

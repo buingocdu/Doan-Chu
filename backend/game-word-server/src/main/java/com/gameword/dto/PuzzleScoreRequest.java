@@ -4,9 +4,7 @@ import lombok.Data;
 
 @Data
 public class PuzzleScoreRequest {
-    private Long imageId;
-    private Integer rows;
-    private Integer cols;
+    private Long gameId;
     private Long durationMs;
     private Integer moves;
 }

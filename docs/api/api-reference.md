@@ -234,24 +234,28 @@ Request/response chi tiết, luật chơi và cơ chế polling: xem [DOC-007 m�
 
 ### Ghép hình (`/api/puzzle`, `/api/admin/puzzle`)
 
-Game chơi đơn: kéo các mảnh vào đúng chỗ, xếp hạng theo thời gian của từng (ảnh, số hàng × số cột).
+Game chơi đơn do quản trị tạo sẵn: một game = một ảnh trong kho + lưới hàng × cột. Người chơi chọn game và chơi luôn, xếp hạng theo thời gian của từng game. Giao diện: hình mẫu thu nhỏ ở góc, khu vực xếp để trống; mảnh sáng viền khi kéo tới đúng vị trí và tự dính khi thả.
 
 | Method | Đường dẫn | Quyền | Mô tả |
 |--------|-----------|-------|-------|
-| GET | `/api/puzzle/images` | đăng nhập | Danh sách ảnh đang hiện: `[{ id, title, width, height, sizeBytes, active, createdAt }]` |
+| GET | `/api/puzzle/games` | đăng nhập | Game đang hiện (và ảnh của nó đang hiện): `[{ id, title, imageId, width, height, rows, cols, active, createdAt }]` |
 | GET | `/api/puzzle/images/{id}/file` | công khai | Nội dung ảnh (luôn `image/jpeg`, cache 7 ngày). Công khai vì thẻ `<img>` không gửi được header `Authorization`; ảnh đang ẩn trả 400 `Image not found` |
-| POST | `/api/puzzle/scores` | đăng nhập | `{ imageId, rows, cols, durationMs, moves }` → `{ rank, bestMs, personalBest }`. `rows`, `cols` trong `puzzle.min-grid`–`puzzle.max-grid` (2–12) |
-| GET | `/api/puzzle/leaderboard?imageId=&rows=&cols=` | đăng nhập | Top 10, mỗi người một dòng (kết quả tốt nhất): `[{ rank, userId, username, durationMs }]` |
-| GET | `/api/admin/puzzle/images` | ADMIN | Toàn bộ ảnh kể cả ảnh đang ẩn |
+| POST | `/api/puzzle/scores` | đăng nhập | `{ gameId, durationMs, moves }` → `{ rank, bestMs, personalBest }`. Số mảnh lấy từ game, client không tự khai |
+| GET | `/api/puzzle/leaderboard?gameId=` | đăng nhập | Top 10, mỗi người một dòng (kết quả tốt nhất): `[{ rank, userId, username, durationMs }]` |
+| GET | `/api/admin/puzzle/images` | ADMIN | Toàn bộ ảnh trong kho kể cả ảnh đang ẩn |
 | POST | `/api/admin/puzzle/images` | ADMIN | `multipart/form-data`: `file` (bắt buộc), `title` (không gửi thì lấy theo tên file) |
 | GET | `/api/admin/puzzle/images/{id}/file` | ADMIN | Xem cả ảnh đang ẩn |
 | PUT | `/api/admin/puzzle/images/{id}` | ADMIN | `{ title?, active? }` |
-| DELETE | `/api/admin/puzzle/images/{id}` | ADMIN | Xóa ảnh cùng kết quả xếp hạng của ảnh (204) |
+| DELETE | `/api/admin/puzzle/images/{id}` | ADMIN | Xóa ảnh kèm các game dùng ảnh và xếp hạng của chúng (204) |
+| GET | `/api/admin/puzzle/games` | ADMIN | Mọi game kể cả game đang ẩn |
+| POST | `/api/admin/puzzle/games` | ADMIN | `{ imageId, rows, cols, title? }`; `rows`, `cols` trong 2–12; không gửi `title` thì lấy tên ảnh |
+| PUT | `/api/admin/puzzle/games/{id}` | ADMIN | `{ title?, active? }`. Không đổi được lưới (sẽ làm sai xếp hạng): muốn đổi thì tạo game mới |
+| DELETE | `/api/admin/puzzle/games/{id}` | ADMIN | Xóa game và xếp hạng của game (204) |
 
 - Phân quyền: `users.role` là `USER` hoặc `ADMIN`; `/api/admin/**` yêu cầu `ROLE_ADMIN` (403 nếu không). Quyền được nạp từ DB ở mỗi request, không lấy từ JWT. `AuthResponse` có thêm `role` chỉ để ẩn/hiện giao diện. Tài khoản có tên trong `app.admin-usernames` (biến môi trường `ADMIN_USERNAMES`, phân cách bằng dấu phẩy, không phân biệt hoa thường) được nâng lên ADMIN lúc khởi động và lúc đăng ký. Người vừa được cấp quyền cần đăng nhập lại để giao diện hiện menu quản trị.
 - Upload: tối đa `puzzle.max-upload-bytes` (8MB), cạnh ngắn tối thiểu `puzzle.min-image-side` (300px), tối đa 40 triệu điểm ảnh. Server giải mã rồi mã hóa lại thành JPEG, thu nhỏ cạnh dài về `puzzle.max-image-side` (1600px); nội dung không phải ảnh bị từ chối. Nginx cho phép body 10MB riêng cho `/api/admin/puzzle/images`.
-- Chống kết quả gia: `durationMs` phải ≥ số mảnh × `puzzle.min-ms-per-piece` (300ms) và `moves` ≥ số mảnh / 2, nếu không trả 400 `Invalid result`. Ván có dùng gợi ý, hoặc chơi bằng ảnh trên máy người chơi, không gửi kết quả.
-- Lỗi 400: `Image not found`, `Image file is required`, `Image too large`, `Image too small`, `Image dimensions too large`, `Unsupported image format`, `Title is required`, `Invalid grid size`, `Invalid result`.
+- Chống kết quả giả: `durationMs` phải ≥ số mảnh × `puzzle.min-ms-per-piece` (300ms) và `moves` ≥ số mảnh / 2, nếu không trả 400 `Invalid result`. Ván có dùng gợi ý không gửi kết quả.
+- Lỗi 400: `Image not found`, `Puzzle not found`, `Image file is required`, `Image too large`, `Image too small`, `Image dimensions too large`, `Unsupported image format`, `Title is required`, `Invalid grid size`, `Invalid result`.
 
 ## 5. Định dạng lỗi (`GlobalExceptionHandler`)
 
@@ -277,3 +281,4 @@ Lỗi phát sinh trong filter bảo mật (ví dụ token sai/hết hạn) khôn
 | 0.2 | 2026-10-24 | Cập nhật theo bản sửa: `gameId`, `answer`, game public, người chơi lấy từ token, kiểm tra quyền lịch sử |
 | 0.3 | 2026-10-30 | Quên/đổi mật khẩu, đăng nhập bằng email, Phase 2 (phòng, chat, bạn bè) |
 | 0.4 | 2026-11-15 | Ghép hình: kho ảnh, xếp hạng, vai trò ADMIN và `/api/admin/**` |
+| 0.5 | 2026-11-15 | Ghép hình: admin tạo sẵn game (ảnh + lưới), xếp hạng theo `gameId`; bỏ `GET /api/puzzle/images` |

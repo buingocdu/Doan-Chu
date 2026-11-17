@@ -4,6 +4,10 @@
 export const MIN_GRID = 2;
 export const MAX_GRID = 12;
 export const LOGICAL_WIDTH = 1000;
+/** Bề rộng logic của bố cục gọn dành cho điện thoại: khung ghép chiếm gần hết bề ngang nên mảnh đủ lớn để chạm */
+export const COMPACT_LOGICAL_WIDTH = 520;
+/** Màn hình hẹp hơn mức này (px) thì dùng bố cục gọn */
+export const COMPACT_BREAKPOINT = 640;
 
 export interface Difficulty {
   id: string;
@@ -86,6 +90,8 @@ export interface Layout {
   pad: number;
   /** Dải phía dưới khung, nơi các mảnh được rải lúc đầu */
   tray: Rect;
+  /** Hình mẫu thu nhỏ ở góc trên bên phải */
+  thumb: Rect;
 }
 
 const BOARD_MAX_W = 640;
@@ -96,24 +102,37 @@ const TRAY_HEIGHT = 330;
 const BOTTOM_MARGIN = 24;
 // Kích thước ngàm tính theo cạnh ngắn của ô; chiều cao tối đa của ngàm là TAB_HEIGHT
 const TAB_HEIGHT = 0.255;
+const THUMB_MAX = 160;
+const THUMB_MARGIN = 12;
 
-export function computeLayout(aspect: number, rows: number, cols: number): Layout {
+export function computeLayout(aspect: number, rows: number, cols: number, compact = false): Layout {
   const safeAspect = Number.isFinite(aspect) && aspect > 0 ? aspect : 1;
-  let w = BOARD_MAX_W;
+  const logicalWidth = compact ? COMPACT_LOGICAL_WIDTH : LOGICAL_WIDTH;
+  const boardMaxW = compact ? 400 : BOARD_MAX_W;
+  const boardMaxH = compact ? 520 : BOARD_MAX_H;
+  const thumbMax = compact ? 100 : THUMB_MAX;
+  const margin = compact ? 8 : THUMB_MARGIN;
+  let w = boardMaxW;
   let h = w / safeAspect;
-  if (h > BOARD_MAX_H) {
-    h = BOARD_MAX_H;
+  if (h > boardMaxH) {
+    h = boardMaxH;
     w = h * safeAspect;
   }
   const cellW = w / cols;
   const cellH = h / rows;
   const pad = Math.ceil(Math.min(cellW, cellH) * (TAB_HEIGHT + 0.03));
-  const board = { x: (LOGICAL_WIDTH - w) / 2, y: BOARD_TOP, w, h };
+  // Bố cục gọn: khung sát trái, hình mẫu ở lề phải; bố cục rộng: khung ở giữa
+  const board = { x: compact ? margin : (logicalWidth - w) / 2, y: BOARD_TOP, w, h };
   const trayTop = board.y + h + TRAY_GAP;
-  const tray = { x: 0, y: trayTop, w: LOGICAL_WIDTH, h: TRAY_HEIGHT };
+  const tray = { x: 0, y: trayTop, w: logicalWidth, h: TRAY_HEIGHT };
+  // Hình mẫu thu nhỏ nằm trong lề phải của khung (khung rộng tối đa 640 nên không đè lên nhau)
+  const thumbW = safeAspect >= 1 ? thumbMax : thumbMax * safeAspect;
+  const thumbH = safeAspect >= 1 ? thumbMax / safeAspect : thumbMax;
+  const thumb = { x: logicalWidth - thumbW - margin, y: BOARD_TOP, w: thumbW, h: thumbH };
   return {
-    width: LOGICAL_WIDTH,
+    width: logicalWidth,
     height: trayTop + TRAY_HEIGHT + BOTTOM_MARGIN,
+    thumb,
     board,
     rows,
     cols,
@@ -157,7 +176,7 @@ export function clampToWorkspace(layout: Layout, p: Point): Point {
   return { x: Math.min(maxX, Math.max(minX, p.x)), y: Math.min(maxY, Math.max(minY, p.y)) };
 }
 
-/** Thả gần đủ vị trí đúng thì mảnh dính vào khung */
+/** Mảnh đang ở đủ gần vị trí đúng: hiện viền sáng khi kéo, thả ra thì tự nhảy về đúng chỗ */
 export function isNearHome(layout: Layout, p: Point, index: number): boolean {
   const home = homePosition(layout, index);
   const threshold = Math.min(layout.cellW, layout.cellH) * 0.4;
@@ -220,4 +239,13 @@ export function formatDuration(ms: number, withTenths = false): string {
   const seconds = totalSeconds % 60;
   const base = `${minutes}:${seconds.toString().padStart(2, '0')}`;
   return withTenths ? `${base}.${Math.floor((safe % 1000) / 100)}` : base;
+}
+
+/** Tên độ khó theo số mảnh, dùng cho nhãn trên thẻ game */
+export function difficultyLabel(rows: number, cols: number): string {
+  const pieces = rows * cols;
+  if (pieces <= 9) return 'Dễ';
+  if (pieces <= 16) return 'Vừa';
+  if (pieces <= 36) return 'Khó';
+  return 'Rất khó';
 }

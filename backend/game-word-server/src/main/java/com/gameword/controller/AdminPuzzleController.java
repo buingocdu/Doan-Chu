@@ -1,5 +1,8 @@
 package com.gameword.controller;
 
+import com.gameword.dto.PuzzleGameDto;
+import com.gameword.dto.PuzzleGameRequest;
+import com.gameword.dto.PuzzleGameUpdateRequest;
 import com.gameword.dto.PuzzleImageDto;
 import com.gameword.dto.PuzzleImageUpdateRequest;
 import com.gameword.service.PuzzleService;
@@ -38,6 +41,31 @@ public class AdminPuzzleController {
         Long adminId = userService.getUserIdByUsername(principal.getName());
         String name = title != null && !title.isBlank() ? title : stripExtension(file.getOriginalFilename());
         return ResponseEntity.ok(puzzleService.upload(name, file.getBytes(), adminId));
+    }
+
+    // ===== Game =====
+
+    @GetMapping("/games")
+    public ResponseEntity<List<PuzzleGameDto>> games() {
+        return ResponseEntity.ok(puzzleService.listAllGames());
+    }
+
+    @PostMapping("/games")
+    public ResponseEntity<PuzzleGameDto> createGame(@RequestBody PuzzleGameRequest request, Principal principal) {
+        Long adminId = userService.getUserIdByUsername(principal.getName());
+        return ResponseEntity.ok(puzzleService.createGame(request, adminId));
+    }
+
+    @PutMapping("/games/{id}")
+    public ResponseEntity<PuzzleGameDto> updateGame(@PathVariable Long id,
+                                                    @RequestBody PuzzleGameUpdateRequest request) {
+        return ResponseEntity.ok(puzzleService.updateGame(id, request));
+    }
+
+    @DeleteMapping("/games/{id}")
+    public ResponseEntity<Void> deleteGame(@PathVariable Long id) {
+        puzzleService.deleteGame(id);
+        return ResponseEntity.noContent().build();
     }
 
     // Xem ca anh dang an

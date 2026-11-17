@@ -19,6 +19,10 @@ interface JigsawPieceProps {
   z: number;
   placed: boolean;
   dragging: boolean;
+  /** Đang kéo qua đúng vị trí: viền sáng lên */
+  glow: boolean;
+  /** Vừa dính vào khung: viền loé sáng rồi tắt */
+  flash: boolean;
   onPointerDown: (index: number, event: PointerEvent<HTMLDivElement>) => void;
   onPointerMove: (event: PointerEvent<HTMLDivElement>) => void;
   onPointerUp: (event: PointerEvent<HTMLDivElement>) => void;
@@ -26,11 +30,11 @@ interface JigsawPieceProps {
 
 // Mỗi mảnh là một SVG cắt ảnh theo đường viền: ảnh được dịch sao cho đúng phần của ô (row, col)
 function JigsawPiece(props: JigsawPieceProps) {
-  const { index, row, col, path, imageUrl, boardW, boardH, cellW, cellH, pad, x, y, z, placed, dragging } = props;
+  const { index, row, col, path, imageUrl, boardW, boardH, cellW, cellH, pad, x, y, z, placed, dragging, glow, flash } = props;
   const clipId = `jp-${index}-${props.boardW | 0}`;
   return (
     <div
-      className={`jigsaw-piece${placed ? ' is-placed' : ''}${dragging ? ' is-dragging' : ''}`}
+      className={`jigsaw-piece${placed ? ' is-placed' : ''}${dragging ? ' is-dragging' : ''}${glow ? ' is-glowing' : ''}${flash ? ' is-flash' : ''}`}
       style={{ left: x - pad, top: y - pad, width: cellW + pad * 2, height: cellH + pad * 2, zIndex: z }}
       onPointerDown={placed ? undefined : (e) => props.onPointerDown(index, e)}
       onPointerMove={props.onPointerMove}

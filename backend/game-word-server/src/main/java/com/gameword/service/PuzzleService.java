@@ -1,14 +1,19 @@
 package com.gameword.service;
 
 import com.gameword.config.PuzzleConfig;
+import com.gameword.dto.PuzzleGameDto;
+import com.gameword.dto.PuzzleGameRequest;
+import com.gameword.dto.PuzzleGameUpdateRequest;
 import com.gameword.dto.PuzzleImageDto;
 import com.gameword.dto.PuzzleImageUpdateRequest;
 import com.gameword.dto.PuzzleRankEntry;
 import com.gameword.dto.PuzzleScoreRequest;
 import com.gameword.dto.PuzzleScoreResponse;
+import com.gameword.model.PuzzleGame;
 import com.gameword.model.PuzzleImage;
 import com.gameword.model.PuzzleImageData;
 import com.gameword.model.PuzzleScore;
+import com.gameword.repository.PuzzleGameRepository;
 import com.gameword.repository.PuzzleImageDataRepository;
 import com.gameword.repository.PuzzleImageRepository;
 import com.gameword.repository.PuzzleScoreRepository;
@@ -19,8 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-// Game ghep hinh: kho anh (admin quan ly), ket qua va bang xep hang theo (anh, so hang x so cot)
+// Game ghep hinh: kho anh va game (admin quan ly), ket qua va bang xep hang theo game
 @Service
 public class PuzzleService {
 
@@ -32,19 +40,20 @@ public class PuzzleService {
     private final PuzzleImageRepository imageRepository;
     private final PuzzleImageDataRepository dataRepository;
     private final PuzzleScoreRepository scoreRepository;
+    private final PuzzleGameRepository gameRepository;
     private final PuzzleConfig config;
 
     public PuzzleService(PuzzleImageRepository imageRepository, PuzzleImageDataRepository dataRepository,
-                         PuzzleScoreRepository scoreRepository, PuzzleConfig config) {
+                         PuzzleScoreRepository scoreRepository, PuzzleGameRepository gameRepository,
+                         PuzzleConfig config) {
         this.imageRepository = imageRepository;
         this.dataRepository = dataRepository;
         this.scoreRepository = scoreRepository;
+        this.gameRepository = gameRepository;
         this.config = config;
     }
 
-    public List<PuzzleImageDto> listActive() {
-        return imageRepository.findByActiveTrueOrderByCreatedAtDescIdDesc().stream().map(PuzzleService::toDto).toList();
-    }
+    // ===== Kho anh (admin) =====
 
     public List<PuzzleImageDto> listAll() {
         return imageRepository.findAllByOrderByCreatedAtDescIdDesc().stream().map(PuzzleService::toDto).toList();
@@ -103,47 +112,108 @@ public class PuzzleService {
         if (!imageRepository.existsById(id)) {
             throw new RuntimeException("Image not found");
         }
-        // puzzle_image_data va puzzle_scores xoa theo (ON DELETE CASCADE)
+        // puzzle_image_data, puzzle_games va puzzle_scores xoa theo (ON DELETE CASCADE)
         imageRepository.deleteById(id);
     }
 
+    // ===== Game =====
+
+    // Game nguoi choi thay: game dang hien va anh cua no cung dang hien
+    public List<PuzzleGameDto> listPlayableGames() {
+        return toGameDtos(gameRepository.findPlayable());
+    }
+
+    public List<PuzzleGameDto> listAllGames() {
+        return toGameDtos(gameRepository.findAllByOrderByCreatedAtDescIdDesc());
+    }
+
     @Transactional
-    public PuzzleScoreResponse submit(Long userId, PuzzleScoreRequest request) {
+    public PuzzleGameDto createGame(PuzzleGameRequest request, Long adminId) {
         validateGrid(request.getRows(), request.getCols());
-        if (request.getImageId() == null || request.getDurationMs() == null || request.getMoves() == null) {
-            throw new RuntimeException("Invalid result");
+        if (request.getImageId() == null) {
+            throw new RuntimeException("Image not found");
         }
         PuzzleImage image = imageRepository.findById(request.getImageId())
-            .filter(i -> Boolean.TRUE.equals(i.getActive()))
             .orElseThrow(() -> new RuntimeException("Image not found"));
-        int rows = request.getRows();
-        int cols = request.getCols();
-        long pieces = (long) rows * cols;
+        String title = cleanTitle(request.getTitle() == null || request.getTitle().isBlank()
+            ? image.getTitle() : request.getTitle());
+        PuzzleGame game = gameRepository.save(PuzzleGame.builder()
+            .title(title).imageId(image.getId()).rows(request.getRows()).cols(request.getCols())
+            .active(true).createdBy(adminId).createdAt(LocalDateTime.now()).build());
+        return toGameDto(game, image);
+    }
+
+    @Transactional
+    public PuzzleGameDto updateGame(Long id, PuzzleGameUpdateRequest request) {
+        PuzzleGame game = gameRepository.findById(id).orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        if (request.getTitle() != null) {
+            String title = cleanTitle(request.getTitle());
+            if (title.isEmpty()) {
+                throw new RuntimeException("Title is required");
+            }
+            game.setTitle(title);
+        }
+        if (request.getActive() != null) {
+            game.setActive(request.getActive());
+        }
+        game = gameRepository.save(game);
+        return toGameDto(game, imageRepository.findById(game.getImageId()).orElse(null));
+    }
+
+    @Transactional
+    public void deleteGame(Long id) {
+        if (!gameRepository.existsById(id)) {
+            throw new RuntimeException("Puzzle not found");
+        }
+        // puzzle_scores xoa theo (ON DELETE CASCADE)
+        gameRepository.deleteById(id);
+    }
+
+    // ===== Ket qua, xep hang =====
+
+    @Transactional
+    public PuzzleScoreResponse submit(Long userId, PuzzleScoreRequest request) {
+        if (request.getGameId() == null || request.getDurationMs() == null || request.getMoves() == null) {
+            throw new RuntimeException("Invalid result");
+        }
+        PuzzleGame game = playableGame(request.getGameId());
+        long pieces = (long) game.getRows() * game.getCols();
         // Chong gui ket qua gia: khong the ghep xong nhanh hon moc nay, va moi manh can it nhat 1 thao tac
         if (request.getDurationMs() < pieces * config.getMinMsPerPiece() || request.getMoves() < pieces / 2) {
             throw new RuntimeException("Invalid result");
         }
-        Long previousBest = scoreRepository.bestOf(userId, image.getId(), rows, cols);
+        Long previousBest = scoreRepository.bestOf(userId, game.getId());
         scoreRepository.save(PuzzleScore.builder()
-            .userId(userId).imageId(image.getId()).rows(rows).cols(cols)
+            .userId(userId).gameId(game.getId())
             .durationMs(request.getDurationMs()).moves(request.getMoves())
             .createdAt(LocalDateTime.now()).build());
         long best = previousBest == null ? request.getDurationMs() : Math.min(previousBest, request.getDurationMs());
-        int rank = (int) scoreRepository.countFasterUsers(image.getId(), rows, cols, best) + 1;
+        int rank = (int) scoreRepository.countFasterUsers(game.getId(), best) + 1;
         return PuzzleScoreResponse.builder()
             .rank(rank).bestMs(best)
             .personalBest(previousBest == null || request.getDurationMs() < previousBest)
             .build();
     }
 
-    public List<PuzzleRankEntry> leaderboard(Long imageId, int rows, int cols) {
-        validateGrid(rows, cols);
+    public List<PuzzleRankEntry> leaderboard(Long gameId) {
+        playableGame(gameId);
         List<PuzzleRankEntry> result = new ArrayList<>();
         int rank = 1;
-        for (Object[] row : scoreRepository.bestPerUser(imageId, rows, cols, PageRequest.of(0, LEADERBOARD_SIZE))) {
+        for (Object[] row : scoreRepository.bestPerUser(gameId, PageRequest.of(0, LEADERBOARD_SIZE))) {
             result.add(new PuzzleRankEntry(rank++, (Long) row[0], (String) row[1], (Long) row[2]));
         }
         return result;
+    }
+
+    private PuzzleGame playableGame(Long gameId) {
+        PuzzleGame game = gameRepository.findById(gameId).filter(g -> Boolean.TRUE.equals(g.getActive()))
+            .orElseThrow(() -> new RuntimeException("Puzzle not found"));
+        boolean imageActive = imageRepository.findById(game.getImageId())
+            .map(i -> Boolean.TRUE.equals(i.getActive())).orElse(false);
+        if (!imageActive) {
+            throw new RuntimeException("Puzzle not found");
+        }
+        return game;
     }
 
     void validateGrid(Integer rows, Integer cols) {
@@ -152,6 +222,19 @@ public class PuzzleService {
                 || cols < config.getMinGrid() || cols > config.getMaxGrid()) {
             throw new RuntimeException("Invalid grid size");
         }
+    }
+
+    private List<PuzzleGameDto> toGameDtos(List<PuzzleGame> games) {
+        Map<Long, PuzzleImage> images = imageRepository
+            .findAllById(games.stream().map(PuzzleGame::getImageId).distinct().toList()).stream()
+            .collect(Collectors.toMap(PuzzleImage::getId, Function.identity()));
+        return games.stream().map(g -> toGameDto(g, images.get(g.getImageId()))).toList();
+    }
+
+    private static PuzzleGameDto toGameDto(PuzzleGame g, PuzzleImage image) {
+        return PuzzleGameDto.builder().id(g.getId()).title(g.getTitle()).imageId(g.getImageId())
+            .width(image == null ? null : image.getWidth()).height(image == null ? null : image.getHeight())
+            .rows(g.getRows()).cols(g.getCols()).active(g.getActive()).createdAt(g.getCreatedAt()).build();
     }
 
     private static String cleanTitle(String title) {

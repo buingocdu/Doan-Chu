@@ -22,14 +22,8 @@ public class PuzzleScore {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "image_id", nullable = false)
-    private Long imageId;
-
-    @Column(name = "piece_rows", nullable = false)
-    private Integer rows;
-
-    @Column(name = "piece_cols", nullable = false)
-    private Integer cols;
+    @Column(name = "game_id", nullable = false)
+    private Long gameId;
 
     @Column(name = "duration_ms", nullable = false)
     private Long durationMs;

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { Check, EyeOff, Eye, ImageOff, Pencil, Trash2, UploadCloud, X } from 'lucide-react';
+import { Check, EyeOff, Eye, Pencil, Puzzle, Trash2, UploadCloud, X } from 'lucide-react';
 import {
   deletePuzzleImage,
-  getAdminPuzzleImageBlob,
   getAdminPuzzleImages,
   getErrorMessage,
-  puzzleImageUrl,
   updatePuzzleImage,
   uploadPuzzleImage,
 } from '../../../services/api';
 import StatusMessage from '../../../components/common/StatusMessage';
+import AdminThumb from '../components/AdminThumb';
+import AdminGames from '../components/AdminGames';
 import type { PuzzleImage } from '../../../types/api';
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -23,43 +23,6 @@ function formatSize(bytes: number): string {
   return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-// Ảnh đang ẩn không có địa chỉ công khai: tải bằng token quản trị
-function Thumb({ image }: { image: PuzzleImage }) {
-  const [src, setSrc] = useState<string | null>(image.active ? puzzleImageUrl(image.id) : null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    if (image.active) {
-      setSrc(puzzleImageUrl(image.id));
-      return;
-    }
-    let url: string | null = null;
-    let cancelled = false;
-    getAdminPuzzleImageBlob(image.id)
-      .then((blob) => {
-        if (cancelled) return;
-        url = URL.createObjectURL(blob);
-        setSrc(url);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [image.id, image.active]);
-
-  if (failed || !src) {
-    return (
-      <span className="admin-thumb admin-thumb-empty" aria-hidden="true">
-        <ImageOff size={22} />
-      </span>
-    );
-  }
-  return <img className="admin-thumb" src={src} alt="" loading="lazy" onError={() => setFailed(true)} />;
-}
-
 export default function AdminPuzzlePage() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [files, setFiles] = useState<File[]>([]);
@@ -69,6 +32,8 @@ export default function AdminPuzzlePage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [tab, setTab] = useState<'games' | 'images'>('games');
+  const [gameImageId, setGameImageId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
@@ -163,8 +128,41 @@ export default function AdminPuzzlePage() {
   return (
     <section className="page admin-page">
       <h1>
-        <UploadCloud size={24} aria-hidden="true" /> Quản trị kho ảnh ghép hình
+        <UploadCloud size={24} aria-hidden="true" /> Quản trị ghép hình
       </h1>
+
+      <div className="admin-tabs" role="tablist" aria-label="Quản trị ghép hình">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'games'}
+          className={`admin-tab${tab === 'games' ? ' is-active' : ''}`}
+          onClick={() => setTab('games')}
+        >
+          Game
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'images'}
+          className={`admin-tab${tab === 'images' ? ' is-active' : ''}`}
+          onClick={() => setTab('images')}
+        >
+          Kho ảnh
+        </button>
+      </div>
+
+      {tab === 'games' && (
+        <AdminGames
+          images={load.status === 'success' ? load.images : []}
+          imagesLoading={load.status === 'loading'}
+          preselectImageId={gameImageId}
+          onNeedImages={() => setTab('images')}
+        />
+      )}
+
+      {tab === 'images' && (
+        <>
 
       <div className="card admin-upload">
         <h2 className="section-title">Thêm ảnh từ máy</h2>
@@ -244,7 +242,7 @@ export default function AdminPuzzlePage() {
         <ul className="admin-list">
           {load.images.map((image) => (
             <li key={image.id} className={`card admin-item${image.active ? '' : ' is-hidden'}`}>
-              <Thumb image={image} />
+              <AdminThumb image={image} />
               <div className="admin-item-body">
                 {editingId === image.id ? (
                   <form
@@ -285,6 +283,16 @@ export default function AdminPuzzlePage() {
               <div className="admin-item-actions">
                 <button
                   type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setGameImageId(image.id);
+                    setTab('games');
+                  }}
+                >
+                  <Puzzle size={16} aria-hidden="true" /> <span className="hide-sm">Tạo game</span>
+                </button>
+                <button
+                  type="button"
                   className="btn btn-ghost btn-sm"
                   onClick={() => {
                     setEditingId(image.id);
@@ -308,6 +316,8 @@ export default function AdminPuzzlePage() {
             </li>
           ))}
         </ul>
+      )}
+        </>
       )}
     </section>
   );

@@ -249,10 +249,29 @@ export interface PuzzleImage {
   createdAt: string;
 }
 
-export interface PuzzleScoreRequest {
+/** Game ghép hình do quản trị tạo sẵn: một ảnh trong kho + lưới hàng × cột */
+export interface PuzzleGame {
+  id: number;
+  title: string;
   imageId: number;
+  /** Kích thước ảnh, dùng để dựng khung đúng tỉ lệ */
+  width: number | null;
+  height: number | null;
   rows: number;
   cols: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface PuzzleGameRequest {
+  imageId: number;
+  title?: string;
+  rows: number;
+  cols: number;
+}
+
+export interface PuzzleScoreRequest {
+  gameId: number;
   durationMs: number;
   moves: number;
 }

@@ -110,31 +110,67 @@ class PuzzleFlowIntegrationTest {
         mvc.perform(get("/api/admin/puzzle/images")).andExpect(status().isForbidden());
     }
 
+    private long createGame(String adminToken, long imageId, int rows, int cols) throws Exception {
+        MvcResult result = mvc.perform(post("/api/admin/puzzle/games").header("Authorization", adminToken)
+                .contentType("application/json")
+                .content("{\"imageId\":" + imageId + ",\"rows\":" + rows + ",\"cols\":" + cols + ",\"title\":\"Game thu\"}"))
+            .andExpect(status().isOk()).andReturn();
+        JsonNode body = JSON.readTree(result.getResponse().getContentAsString());
+        assertEquals(rows, body.get("rows").asInt());
+        assertEquals(800, body.get("width").asInt());
+        return body.get("id").asLong();
+    }
+
     @Test
-    void adminUploadsAndPlayersSeeOnlyActiveImages() throws Exception {
+    void playersSeeOnlyActiveGamesAndImagesStayPublicOnlyWhileActive() throws Exception {
         String admin = register(true);
         String player = register(false);
-        long id = uploadImage(admin, "Hoa sen");
+        long imageId = uploadImage(admin, "Hoa sen");
+        long gameId = createGame(admin, imageId, 3, 4);
 
-        mvc.perform(get("/api/puzzle/images").header("Authorization", player)).andExpect(status().isOk());
-        String listBefore = mvc.perform(get("/api/puzzle/images").header("Authorization", player))
-            .andReturn().getResponse().getContentAsString();
-        assertTrue(listBefore.contains("\"id\":" + id));
+        String list = mvc.perform(get("/api/puzzle/games").header("Authorization", player))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertTrue(list.contains("\"id\":" + gameId));
 
-        // Anh tai khong can token (the <img>) va luon la JPEG
-        MvcResult file = mvc.perform(get("/api/puzzle/images/" + id + "/file")).andExpect(status().isOk()).andReturn();
+        // Anh tai khong can token (the img) va luon la JPEG
+        MvcResult file = mvc.perform(get("/api/puzzle/images/" + imageId + "/file")).andExpect(status().isOk()).andReturn();
         assertEquals("image/jpeg", file.getResponse().getContentType());
 
-        // Admin an anh -> nguoi choi khong thay va khong tai duoc
-        mvc.perform(put("/api/admin/puzzle/images/" + id).header("Authorization", admin)
+        // Admin an game -> nguoi choi khong thay
+        mvc.perform(put("/api/admin/puzzle/games/" + gameId).header("Authorization", admin)
             .contentType("application/json").content("{\"active\":false}")).andExpect(status().isOk());
-        String listAfter = mvc.perform(get("/api/puzzle/images").header("Authorization", player))
-            .andReturn().getResponse().getContentAsString();
-        assertTrue(!listAfter.contains("\"id\":" + id));
-        mvc.perform(get("/api/puzzle/images/" + id + "/file")).andExpect(status().isBadRequest());
+        assertTrue(!mvc.perform(get("/api/puzzle/games").header("Authorization", player))
+            .andReturn().getResponse().getContentAsString().contains("\"id\":" + gameId));
+        mvc.perform(put("/api/admin/puzzle/games/" + gameId).header("Authorization", admin)
+            .contentType("application/json").content("{\"active\":true}")).andExpect(status().isOk());
 
-        mvc.perform(delete("/api/admin/puzzle/images/" + id).header("Authorization", admin))
+        // Admin an anh -> game cung bien mat, anh khong tai duoc
+        mvc.perform(put("/api/admin/puzzle/images/" + imageId).header("Authorization", admin)
+            .contentType("application/json").content("{\"active\":false}")).andExpect(status().isOk());
+        assertTrue(!mvc.perform(get("/api/puzzle/games").header("Authorization", player))
+            .andReturn().getResponse().getContentAsString().contains("\"id\":" + gameId));
+        mvc.perform(get("/api/puzzle/images/" + imageId + "/file")).andExpect(status().isBadRequest());
+
+        // Xoa anh keo theo xoa game
+        mvc.perform(delete("/api/admin/puzzle/images/" + imageId).header("Authorization", admin))
             .andExpect(status().isNoContent());
+        assertTrue(!mvc.perform(get("/api/admin/puzzle/games").header("Authorization", admin))
+            .andReturn().getResponse().getContentAsString().contains("\"id\":" + gameId));
+    }
+
+    @Test
+    void normalUserCannotCreateGamesAndInvalidGridIsRejected() throws Exception {
+        String admin = register(true);
+        String user = register(false);
+        long imageId = uploadImage(admin, "Bien");
+        mvc.perform(post("/api/admin/puzzle/games").header("Authorization", user).contentType("application/json")
+            .content("{\"imageId\":" + imageId + ",\"rows\":3,\"cols\":3}")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/puzzle/games").header("Authorization", admin).contentType("application/json")
+            .content("{\"imageId\":" + imageId + ",\"rows\":1,\"cols\":3}")).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/admin/puzzle/games").header("Authorization", admin).contentType("application/json")
+            .content("{\"imageId\":" + imageId + ",\"rows\":3,\"cols\":99}")).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/admin/puzzle/games").header("Authorization", admin).contentType("application/json")
+            .content("{\"imageId\":99999,\"rows\":3,\"cols\":3}")).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -146,32 +182,31 @@ class PuzzleFlowIntegrationTest {
     }
 
     @Test
-    void scoresAreValidatedAndRanked() throws Exception {
+    void scoresAreValidatedAgainstTheGameAndRanked() throws Exception {
         String admin = register(true);
-        long id = uploadImage(admin, "Bien xanh");
+        long gameId = createGame(admin, uploadImage(admin, "Bien xanh"), 3, 3);
         String fast = register(false);
         String slow = register(false);
 
         // 3x3 = 9 manh: nhanh hon 9 * 300ms hoac it thao tac hon 4 la ket qua gia
         mvc.perform(post("/api/puzzle/scores").header("Authorization", fast).contentType("application/json")
-            .content(score(id, 3, 3, 500, 20))).andExpect(status().isBadRequest());
+            .content(score(gameId, 500, 20))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/puzzle/scores").header("Authorization", fast).contentType("application/json")
-            .content(score(id, 3, 3, 60_000, 1))).andExpect(status().isBadRequest());
+            .content(score(gameId, 60_000, 1))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/puzzle/scores").header("Authorization", fast).contentType("application/json")
-            .content(score(id, 99, 3, 60_000, 20))).andExpect(status().isBadRequest());
+            .content(score(99999, 60_000, 20))).andExpect(status().isBadRequest());
         mvc.perform(post("/api/puzzle/scores").contentType("application/json")
-            .content(score(id, 3, 3, 60_000, 20))).andExpect(status().isForbidden());
+            .content(score(gameId, 60_000, 20))).andExpect(status().isForbidden());
 
         mvc.perform(post("/api/puzzle/scores").header("Authorization", slow).contentType("application/json")
-            .content(score(id, 3, 3, 90_000, 25))).andExpect(status().isOk());
+            .content(score(gameId, 90_000, 25))).andExpect(status().isOk());
         MvcResult res = mvc.perform(post("/api/puzzle/scores").header("Authorization", fast)
-            .contentType("application/json").content(score(id, 3, 3, 40_000, 15))).andExpect(status().isOk()).andReturn();
+            .contentType("application/json").content(score(gameId, 40_000, 15))).andExpect(status().isOk()).andReturn();
         JsonNode body = JSON.readTree(res.getResponse().getContentAsString());
         assertEquals(1, body.get("rank").asInt());
         assertTrue(body.get("personalBest").asBoolean());
 
-        String board = mvc.perform(get("/api/puzzle/leaderboard?imageId=" + id + "&rows=3&cols=3")
-                .header("Authorization", fast))
+        String board = mvc.perform(get("/api/puzzle/leaderboard?gameId=" + gameId).header("Authorization", fast))
             .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode rows = JSON.readTree(board);
         assertEquals(2, rows.size());
@@ -179,8 +214,7 @@ class PuzzleFlowIntegrationTest {
         assertEquals(2, rows.get(1).get("rank").asInt());
     }
 
-    private static String score(long imageId, int rows, int cols, long ms, int moves) {
-        return "{\"imageId\":" + imageId + ",\"rows\":" + rows + ",\"cols\":" + cols
-            + ",\"durationMs\":" + ms + ",\"moves\":" + moves + "}";
+    private static String score(long gameId, long ms, int moves) {
+        return "{\"gameId\":" + gameId + ",\"durationMs\":" + ms + ",\"moves\":" + moves + "}";
     }
 }

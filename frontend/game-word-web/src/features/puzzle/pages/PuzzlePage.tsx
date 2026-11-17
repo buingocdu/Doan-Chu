@@ -1,27 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { ImagePlus, Puzzle, RotateCcw, Trophy } from 'lucide-react';
-import { getErrorMessage, getPuzzleImages, puzzleImageUrl, submitPuzzleScore } from '../../../services/api';
+import { useCallback, useEffect, useState } from 'react';
+import { Puzzle, RotateCcw, Trophy } from 'lucide-react';
+import { getErrorMessage, getPuzzleGames, puzzleImageUrl, submitPuzzleScore } from '../../../services/api';
 import StatusMessage from '../../../components/common/StatusMessage';
 import PuzzleBoard, { type PuzzleResult } from '../components/PuzzleBoard';
 import PuzzleLeaderboard from '../components/PuzzleLeaderboard';
-import type { PuzzleImage, PuzzleScoreResponse } from '../../../types/api';
-import {
-  clampGrid,
-  CUSTOM_DIFFICULTY_ID,
-  DIFFICULTIES,
-  formatDuration,
-  MAX_GRID,
-  MIN_GRID,
-} from '../utils/jigsaw';
-
-type Source =
-  | { kind: 'server'; image: PuzzleImage }
-  | { kind: 'local'; url: string; aspect: number; name: string };
+import type { PuzzleGame, PuzzleScoreResponse } from '../../../types/api';
+import { difficultyLabel, formatDuration } from '../utils/jigsaw';
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'success'; images: PuzzleImage[] };
+  | { status: 'success'; games: PuzzleGame[] };
 
 type Submit =
   | { status: 'idle' }
@@ -30,80 +19,34 @@ type Submit =
   | { status: 'skipped'; reason: string }
   | { status: 'error'; message: string };
 
-type Phase = 'setup' | 'playing' | 'done';
-
-const MAX_LOCAL_BYTES = 15 * 1024 * 1024;
+type Phase = 'list' | 'playing' | 'done';
 
 export default function PuzzlePage() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
-  const [source, setSource] = useState<Source | null>(null);
-  const [difficultyId, setDifficultyId] = useState<string>('easy');
-  const [customRows, setCustomRows] = useState(5);
-  const [customCols, setCustomCols] = useState(5);
-  const [showGhost, setShowGhost] = useState(true);
-  const [phase, setPhase] = useState<Phase>('setup');
+  const [game, setGame] = useState<PuzzleGame | null>(null);
+  const [phase, setPhase] = useState<Phase>('list');
   const [gameKey, setGameKey] = useState(0);
   const [result, setResult] = useState<PuzzleResult | null>(null);
   const [submit, setSubmit] = useState<Submit>({ status: 'idle' });
   const [rankRefresh, setRankRefresh] = useState(0);
-  const [localError, setLocalError] = useState<string | null>(null);
-  const localUrlRef = useRef<string | null>(null);
+  const [rankGame, setRankGame] = useState<PuzzleGame | null>(null);
 
-  const loadImages = useCallback(async () => {
+  const loadGames = useCallback(async () => {
     setLoad({ status: 'loading' });
     try {
-      const images = await getPuzzleImages();
-      setLoad({ status: 'success', images });
-      setSource((current) => current ?? (images.length > 0 ? { kind: 'server', image: images[0] } : null));
+      setLoad({ status: 'success', games: await getPuzzleGames() });
     } catch (error) {
-      setLoad({ status: 'error', message: getErrorMessage(error, 'Không tải được kho ảnh.') });
+      setLoad({ status: 'error', message: getErrorMessage(error, 'Không tải được danh sách game.') });
     }
   }, []);
 
   useEffect(() => {
-    void loadImages();
-  }, [loadImages]);
+    void loadGames();
+  }, [loadGames]);
 
-  useEffect(
-    () => () => {
-      if (localUrlRef.current) URL.revokeObjectURL(localUrlRef.current);
-    },
-    [],
-  );
-
-  const preset = DIFFICULTIES.find((d) => d.id === difficultyId);
-  const rows = preset ? preset.rows : clampGrid(customRows);
-  const cols = preset ? preset.cols : clampGrid(customCols);
-
-  const handleLocalFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setLocalError(null);
-    if (!file.type.startsWith('image/')) {
-      setLocalError('File đã chọn không phải ảnh.');
-      return;
-    }
-    if (file.size > MAX_LOCAL_BYTES) {
-      setLocalError('Ảnh quá lớn (tối đa 15MB).');
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    const probe = new Image();
-    probe.onload = () => {
-      if (localUrlRef.current) URL.revokeObjectURL(localUrlRef.current);
-      localUrlRef.current = url;
-      setSource({ kind: 'local', url, aspect: probe.naturalWidth / probe.naturalHeight, name: file.name });
-    };
-    probe.onerror = () => {
-      URL.revokeObjectURL(url);
-      setLocalError('Không đọc được ảnh này. Hãy thử file khác.');
-    };
-    probe.src = url;
-  };
-
-  const start = () => {
-    if (!source) return;
+  // Chọn game là chơi luôn
+  const play = (target: PuzzleGame) => {
+    setGame(target);
     setResult(null);
     setSubmit({ status: 'idle' });
     setGameKey((k) => k + 1);
@@ -111,25 +54,16 @@ export default function PuzzlePage() {
   };
 
   const handleFinish = async (res: PuzzleResult) => {
+    if (!game) return;
     setResult(res);
     setPhase('done');
-    if (!source || source.kind !== 'server') {
-      setSubmit({ status: 'skipped', reason: 'Ảnh của bạn không có bảng xếp hạng.' });
-      return;
-    }
     if (res.hintsUsed > 0) {
       setSubmit({ status: 'skipped', reason: 'Ván có dùng gợi ý nên không được ghi vào bảng xếp hạng.' });
       return;
     }
     setSubmit({ status: 'saving' });
     try {
-      const response = await submitPuzzleScore({
-        imageId: source.image.id,
-        rows,
-        cols,
-        durationMs: res.durationMs,
-        moves: res.moves,
-      });
+      const response = await submitPuzzleScore({ gameId: game.id, durationMs: res.durationMs, moves: res.moves });
       setSubmit({ status: 'saved', response });
       setRankRefresh((n) => n + 1);
     } catch (error) {
@@ -137,28 +71,31 @@ export default function PuzzlePage() {
     }
   };
 
-  const imageUrl = source ? (source.kind === 'server' ? puzzleImageUrl(source.image.id) : source.url) : '';
-  const aspect = source ? (source.kind === 'server' ? source.image.width / source.image.height : source.aspect) : 1;
-  const leaderboardImageId = source?.kind === 'server' ? source.image.id : null;
+  const backToList = () => {
+    setPhase('list');
+    void loadGames();
+  };
 
-  if (phase === 'playing' && source) {
+  if (phase === 'playing' && game) {
     return (
       <section className="page puzzle-page">
+        <h1 className="puzzle-title">
+          <Puzzle size={22} aria-hidden="true" /> {game.title}
+        </h1>
         <PuzzleBoard
           key={gameKey}
-          imageUrl={imageUrl}
-          aspect={aspect}
-          rows={rows}
-          cols={cols}
-          showGhost={showGhost}
+          imageUrl={puzzleImageUrl(game.imageId)}
+          aspect={game.width && game.height ? game.width / game.height : 1}
+          rows={game.rows}
+          cols={game.cols}
           onFinish={(r) => void handleFinish(r)}
-          onExit={() => setPhase('setup')}
+          onExit={backToList}
         />
       </section>
     );
   }
 
-  if (phase === 'done' && source && result) {
+  if (phase === 'done' && game && result) {
     return (
       <section className="page puzzle-page">
         <h1>
@@ -167,7 +104,7 @@ export default function PuzzlePage() {
         <div className="card puzzle-result" role="status">
           <p className="puzzle-result-time">{formatDuration(result.durationMs, true)}</p>
           <p className="muted">
-            {rows}×{cols} ({rows * cols} mảnh) · {result.moves} lượt kéo
+            {game.title} · {game.rows}×{game.cols} ({game.rows * game.cols} mảnh) · {result.moves} lượt kéo
             {result.hintsUsed > 0 ? ` · ${result.hintsUsed} gợi ý` : ''}
           </p>
           {submit.status === 'saving' && <p>Đang lưu kết quả…</p>}
@@ -184,17 +121,15 @@ export default function PuzzlePage() {
             </p>
           )}
           <div className="puzzle-actions">
-            <button type="button" className="btn btn-primary" onClick={start}>
+            <button type="button" className="btn btn-primary" onClick={() => play(game)}>
               <RotateCcw size={16} aria-hidden="true" /> Chơi lại
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setPhase('setup')}>
-              Chọn ảnh / độ khó khác
+            <button type="button" className="btn btn-ghost" onClick={backToList}>
+              Chọn game khác
             </button>
           </div>
         </div>
-        {leaderboardImageId !== null && (
-          <PuzzleLeaderboard imageId={leaderboardImageId} rows={rows} cols={cols} refreshKey={rankRefresh} />
-        )}
+        <PuzzleLeaderboard gameId={game.id} title={game.title} refreshKey={rankRefresh} />
       </section>
     );
   }
@@ -205,133 +140,45 @@ export default function PuzzlePage() {
         <Puzzle size={24} aria-hidden="true" /> Ghép hình
       </h1>
       <p className="muted puzzle-intro">
-        Kéo các mảnh ở khay phía dưới vào đúng vị trí trên khung. Thả gần đúng chỗ là mảnh tự dính. Ghép càng nhanh càng
-        lên cao trên bảng xếp hạng.
+        Chọn một game để chơi ngay. Kéo các mảnh ở khay phía dưới vào khung, đối chiếu với hình mẫu thu nhỏ ở góc. Mảnh sáng
+        viền khi tới đúng chỗ và tự dính khi thả. Ghép càng nhanh càng lên cao trên bảng xếp hạng.
       </p>
 
-      <div className="card puzzle-setup">
-        <h2 className="section-title">1. Chọn ảnh</h2>
-        {load.status === 'loading' && <StatusMessage kind="loading">Đang tải kho ảnh…</StatusMessage>}
-        {load.status === 'error' && (
-          <StatusMessage kind="error" onRetry={() => void loadImages()}>
-            {load.message}
-          </StatusMessage>
-        )}
-        {load.status === 'success' && (
-          <ul className="puzzle-gallery" aria-label="Kho ảnh">
-            {load.images.map((image) => {
-              const selected = source?.kind === 'server' && source.image.id === image.id;
-              return (
-                <li key={image.id}>
-                  <button
-                    type="button"
-                    className={`puzzle-thumb${selected ? ' is-selected' : ''}`}
-                    aria-pressed={selected}
-                    onClick={() => setSource({ kind: 'server', image })}
-                  >
-                    <img src={puzzleImageUrl(image.id)} alt="" loading="lazy" draggable={false} />
-                    <span>{image.title}</span>
-                  </button>
-                </li>
-              );
-            })}
-            <li>
-              <label className={`puzzle-thumb puzzle-thumb-upload${source?.kind === 'local' ? ' is-selected' : ''}`}>
-                {source?.kind === 'local' ? (
-                  <img src={source.url} alt="" draggable={false} />
-                ) : (
-                  <ImagePlus size={28} aria-hidden="true" />
-                )}
-                <span>{source?.kind === 'local' ? source.name : 'Ảnh của bạn'}</span>
-                <input type="file" accept="image/*" className="visually-hidden" onChange={handleLocalFile} />
-              </label>
+      {load.status === 'loading' && <StatusMessage kind="loading">Đang tải danh sách game…</StatusMessage>}
+      {load.status === 'error' && (
+        <StatusMessage kind="error" onRetry={() => void loadGames()}>
+          {load.message}
+        </StatusMessage>
+      )}
+      {load.status === 'success' && load.games.length === 0 && (
+        <StatusMessage kind="empty">Chưa có game ghép hình nào. Quản trị viên sẽ sớm thêm game mới.</StatusMessage>
+      )}
+      {load.status === 'success' && load.games.length > 0 && (
+        <ul className="puzzle-gallery puzzle-games" aria-label="Danh sách game ghép hình">
+          {load.games.map((g) => (
+            <li key={g.id} className="card puzzle-game-card">
+              <button type="button" className="puzzle-game-play" onClick={() => play(g)}>
+                <img src={puzzleImageUrl(g.imageId)} alt="" loading="lazy" draggable={false} />
+                <span className="puzzle-game-title">{g.title}</span>
+                <span className="puzzle-game-meta">
+                  <span className="puzzle-badge">{difficultyLabel(g.rows, g.cols)}</span>
+                  {g.rows}×{g.cols} · {g.rows * g.cols} mảnh
+                </span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                aria-expanded={rankGame?.id === g.id}
+                onClick={() => setRankGame((cur) => (cur?.id === g.id ? null : g))}
+              >
+                <Trophy size={14} aria-hidden="true" /> Xếp hạng
+              </button>
             </li>
-          </ul>
-        )}
-        {localError && (
-          <p className="field-error" role="alert">
-            {localError}
-          </p>
-        )}
-        {load.status === 'success' && load.images.length === 0 && (
-          <p className="muted">Kho ảnh chưa có ảnh nào. Quản trị viên có thể thêm ảnh, hoặc bạn chọn “Ảnh của bạn”.</p>
-        )}
-
-        <h2 className="section-title">2. Chọn độ khó</h2>
-        <div className="puzzle-levels" role="radiogroup" aria-label="Độ khó">
-          {DIFFICULTIES.map((d) => (
-            <label key={d.id} className={`puzzle-level${difficultyId === d.id ? ' is-selected' : ''}`}>
-              <input
-                type="radio"
-                name="difficulty"
-                value={d.id}
-                checked={difficultyId === d.id}
-                onChange={() => setDifficultyId(d.id)}
-              />
-              <strong>{d.label}</strong>
-              <span>
-                {d.rows}×{d.cols} · {d.rows * d.cols} mảnh
-              </span>
-            </label>
           ))}
-          <label className={`puzzle-level${difficultyId === CUSTOM_DIFFICULTY_ID ? ' is-selected' : ''}`}>
-            <input
-              type="radio"
-              name="difficulty"
-              value={CUSTOM_DIFFICULTY_ID}
-              checked={difficultyId === CUSTOM_DIFFICULTY_ID}
-              onChange={() => setDifficultyId(CUSTOM_DIFFICULTY_ID)}
-            />
-            <strong>Tùy chỉnh</strong>
-            <span>
-              {rows}×{cols} · {rows * cols} mảnh
-            </span>
-          </label>
-        </div>
+        </ul>
+      )}
 
-        {difficultyId === CUSTOM_DIFFICULTY_ID && (
-          <div className="puzzle-custom">
-            <div className="field">
-              <label htmlFor="puzzle-rows">Số hàng ({MIN_GRID}–{MAX_GRID})</label>
-              <input
-                id="puzzle-rows"
-                type="number"
-                min={MIN_GRID}
-                max={MAX_GRID}
-                value={customRows}
-                onChange={(e) => setCustomRows(Number(e.target.value))}
-                onBlur={() => setCustomRows((v) => clampGrid(v))}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="puzzle-cols">Số cột ({MIN_GRID}–{MAX_GRID})</label>
-              <input
-                id="puzzle-cols"
-                type="number"
-                min={MIN_GRID}
-                max={MAX_GRID}
-                value={customCols}
-                onChange={(e) => setCustomCols(Number(e.target.value))}
-                onBlur={() => setCustomCols((v) => clampGrid(v))}
-              />
-            </div>
-          </div>
-        )}
-        {rows * cols >= 64 && (
-          <p className="puzzle-note">Nhiều mảnh nhỏ sẽ khó thao tác trên điện thoại; nên chơi trên màn hình lớn.</p>
-        )}
-
-        <label className="puzzle-check">
-          <input type="checkbox" checked={showGhost} onChange={(e) => setShowGhost(e.target.checked)} />
-          Hiện ảnh mờ làm nền trên khung (tắt để chơi khó hơn)
-        </label>
-
-        <button type="button" className="btn btn-primary" onClick={start} disabled={!source}>
-          <Puzzle size={18} aria-hidden="true" /> Bắt đầu ghép
-        </button>
-      </div>
-
-      {leaderboardImageId !== null && <PuzzleLeaderboard imageId={leaderboardImageId} rows={rows} cols={cols} />}
+      {rankGame && <PuzzleLeaderboard gameId={rankGame.id} title={rankGame.title} />}
     </section>
   );
 }

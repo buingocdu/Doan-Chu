@@ -1,6 +1,6 @@
 package com.gameword.controller;
 
-import com.gameword.dto.PuzzleImageDto;
+import com.gameword.dto.PuzzleGameDto;
 import com.gameword.dto.PuzzleRankEntry;
 import com.gameword.dto.PuzzleScoreRequest;
 import com.gameword.dto.PuzzleScoreResponse;
@@ -15,7 +15,7 @@ import java.security.Principal;
 import java.time.Duration;
 import java.util.List;
 
-// Nguoi choi: xem kho anh, tai anh, gui ket qua, bang xep hang
+// Nguoi choi: xem game admin da tao, tai anh, gui ket qua, bang xep hang
 @RestController
 @RequestMapping("/api/puzzle")
 public class PuzzleController {
@@ -28,9 +28,9 @@ public class PuzzleController {
         this.userService = userService;
     }
 
-    @GetMapping("/images")
-    public ResponseEntity<List<PuzzleImageDto>> images() {
-        return ResponseEntity.ok(puzzleService.listActive());
+    @GetMapping("/games")
+    public ResponseEntity<List<PuzzleGameDto>> games() {
+        return ResponseEntity.ok(puzzleService.listPlayableGames());
     }
 
     // Cong khai (SecurityConfig): the <img> khong gui duoc header Authorization. Anh la noi dung game, khong nhay cam.
@@ -51,8 +51,7 @@ public class PuzzleController {
     }
 
     @GetMapping("/leaderboard")
-    public ResponseEntity<List<PuzzleRankEntry>> leaderboard(@RequestParam Long imageId, @RequestParam int rows,
-                                                             @RequestParam int cols) {
-        return ResponseEntity.ok(puzzleService.leaderboard(imageId, rows, cols));
+    public ResponseEntity<List<PuzzleRankEntry>> leaderboard(@RequestParam Long gameId) {
+        return ResponseEntity.ok(puzzleService.leaderboard(gameId));
     }
 }
