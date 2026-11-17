@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Puzzle, RotateCcw, Trophy } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
 import { getErrorMessage, getPuzzleGames, puzzleImageUrl, submitPuzzleScore } from '../../../services/api';
 import StatusMessage from '../../../components/common/StatusMessage';
 import PuzzleBoard, { type PuzzleResult } from '../components/PuzzleBoard';
@@ -16,12 +18,14 @@ type Submit =
   | { status: 'idle' }
   | { status: 'saving' }
   | { status: 'saved'; response: PuzzleScoreResponse }
+  | { status: 'guest' }
   | { status: 'skipped'; reason: string }
   | { status: 'error'; message: string };
 
 type Phase = 'list' | 'playing' | 'done';
 
 export default function PuzzlePage() {
+  const { user } = useAuth();
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [game, setGame] = useState<PuzzleGame | null>(null);
   const [phase, setPhase] = useState<Phase>('list');
@@ -57,6 +61,11 @@ export default function PuzzlePage() {
     if (!game) return;
     setResult(res);
     setPhase('done');
+    // Khách vẫn chơi được nhưng không có tài khoản để ghi kết quả
+    if (!user) {
+      setSubmit({ status: 'guest' });
+      return;
+    }
     if (res.hintsUsed > 0) {
       setSubmit({ status: 'skipped', reason: 'Ván có dùng gợi ý nên không được ghi vào bảng xếp hạng.' });
       return;
@@ -112,6 +121,12 @@ export default function PuzzlePage() {
             <p>
               {submit.response.personalBest ? 'Kỷ lục cá nhân mới! ' : ''}
               Hạng <strong>{submit.response.rank}</strong> · tốt nhất của bạn {formatDuration(submit.response.bestMs, true)}
+            </p>
+          )}
+          {submit.status === 'guest' && (
+            <p className="muted">
+              <Link to="/login" state={{ from: '/puzzle' }}>Đăng nhập</Link> hoặc{' '}
+              <Link to="/register">đăng ký</Link> để lưu kết quả và lên bảng xếp hạng.
             </p>
           )}
           {submit.status === 'skipped' && <p className="muted">{submit.reason}</p>}

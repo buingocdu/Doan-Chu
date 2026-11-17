@@ -201,7 +201,7 @@ describe('bộ lọc mảnh viền', () => {
 });
 
 describe('ngưỡng tự bắt', () => {
-  it('rất sát vị trí: chỉ vài đơn vị logic, kẹp trong [5, 12] ở mọi độ khó', () => {
+  it('rất sát vị trí: chỉ vài đơn vị logic, kẹp trong [7, 18] ở mọi độ khó', () => {
     for (const n of [2, 3, 4, 6, 8, 12]) {
       const tol = snapTolerance(computeLayout(1.5, n, n));
       expect(tol).toBeGreaterThanOrEqual(SNAP_MIN);

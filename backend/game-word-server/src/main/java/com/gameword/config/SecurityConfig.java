@@ -69,6 +69,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/history/**").authenticated()
                 // Anh ghep hinh tai bang the <img> nen khong co header Authorization
                 .requestMatchers(HttpMethod.GET, "/api/puzzle/images/*/file").permitAll()
+                // Ghep hinh choi khong can dang nhap; chi gui ket qua (POST /api/puzzle/scores) moi can tai khoan
+                .requestMatchers(HttpMethod.GET, "/api/puzzle/games", "/api/puzzle/leaderboard").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/leaderboard/**").permitAll()
                 .anyRequest().authenticated()

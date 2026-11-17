@@ -34,15 +34,15 @@ export default function AppLayout() {
             <Trophy size={18} aria-hidden="true" />
             <span className="hide-sm">Xếp hạng</span>
           </NavLink>
+          <NavLink to="/puzzle" className={navClass}>
+            <Puzzle size={18} aria-hidden="true" />
+            <span className="hide-sm">Ghép hình</span>
+          </NavLink>
           {user ? (
             <>
               <NavLink to="/rooms" className={navClass}>
                 <Users size={18} aria-hidden="true" />
                 <span className="hide-sm">Phòng</span>
-              </NavLink>
-              <NavLink to="/puzzle" className={navClass}>
-                <Puzzle size={18} aria-hidden="true" />
-                <span className="hide-sm">Ghép hình</span>
               </NavLink>
               {isAdmin && (
                 <NavLink to="/admin/puzzle" className={navClass} aria-label="Quản trị kho ảnh">

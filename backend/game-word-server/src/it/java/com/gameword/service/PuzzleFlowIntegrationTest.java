@@ -159,6 +159,24 @@ class PuzzleFlowIntegrationTest {
     }
 
     @Test
+    void guestsCanBrowseAndPlayButCannotSubmitScores() throws Exception {
+        String admin = register(true);
+        long gameId = createGame(admin, uploadImage(admin, "Cong vien"), 3, 3);
+        // Khong token: xem game va xep hang duoc
+        String list = mvc.perform(get("/api/puzzle/games")).andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        assertTrue(list.contains("\"id\":" + gameId));
+        mvc.perform(get("/api/puzzle/leaderboard?gameId=" + gameId)).andExpect(status().isOk());
+        // Token het han/sai van duoc xem nhu khach
+        mvc.perform(get("/api/puzzle/games").header("Authorization", "Bearer sai.token.here")).andExpect(status().isOk());
+        // Nhung khong the gui ket qua
+        mvc.perform(post("/api/puzzle/scores").contentType("application/json").content(score(gameId, 60_000, 20)))
+            .andExpect(status().isForbidden());
+        // Khu vuc admin van dong
+        mvc.perform(get("/api/admin/puzzle/games")).andExpect(status().isForbidden());
+    }
+
+    @Test
     void normalUserCannotCreateGamesAndInvalidGridIsRejected() throws Exception {
         String admin = register(true);
         String user = register(false);

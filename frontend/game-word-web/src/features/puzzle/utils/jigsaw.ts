@@ -191,11 +191,11 @@ export function clampToWorkspace(layout: Layout, p: Point): Point {
   return { x: Math.min(maxX, Math.max(0, p.x)), y: Math.min(maxY, Math.max(0, p.y)) };
 }
 
-// Ngưỡng tự bắt rất sát để không thể dò vị trí đúng bằng cách rê mảnh quanh khung:
-// 5% cạnh ngắn của ô, kẹp trong khoảng [5, 12] đơn vị logic (đủ để chạm được trên điện thoại)
-export const SNAP_RATIO = 0.05;
-export const SNAP_MIN = 5;
-export const SNAP_MAX = 12;
+// Ngưỡng tự bắt vẫn sát để không thể dò vị trí đúng bằng cách rê mảnh quanh khung, nhưng đủ dễ ăn khi chơi:
+// 8% cạnh ngắn của ô, kẹp trong khoảng [7, 18] đơn vị logic (đủ để chạm được trên điện thoại)
+export const SNAP_RATIO = 0.08;
+export const SNAP_MIN = 7;
+export const SNAP_MAX = 18;
 
 export function snapTolerance(layout: Layout): number {
   return Math.min(SNAP_MAX, Math.max(SNAP_MIN, Math.min(layout.cellW, layout.cellH) * SNAP_RATIO));

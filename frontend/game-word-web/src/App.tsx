@@ -77,14 +77,8 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="puzzle"
-              element={
-                <ProtectedRoute>
-                  <PuzzlePage />
-                </ProtectedRoute>
-              }
-            />
+            {/* Chơi không cần đăng nhập; chỉ lưu kết quả lên bảng xếp hạng mới cần tài khoản */}
+            <Route path="puzzle" element={<PuzzlePage />} />
             <Route
               path="admin/puzzle"
               element={

@@ -234,14 +234,14 @@ Request/response chi tiết, luật chơi và cơ chế polling: xem [DOC-007 m�
 
 ### Ghép hình (`/api/puzzle`, `/api/admin/puzzle`)
 
-Game chơi đơn do quản trị tạo sẵn: một game = một ảnh trong kho + lưới hàng × cột. Người chơi chọn game và chơi luôn, xếp hạng theo thời gian của từng game. Giao diện: hình mẫu thu nhỏ ở góc, khu vực xếp để trống; mảnh sáng viền khi kéo tới đúng vị trí và tự dính khi thả.
+Game chơi đơn do quản trị tạo sẵn: một game = một ảnh trong kho + lưới hàng × cột. Người chơi chọn game và chơi luôn, xếp hạng theo thời gian của từng game. Chơi không cần đăng nhập (khách xem game, chơi và xem xếp hạng); chỉ gửi kết quả mới cần tài khoản. Giao diện: hình mẫu thu nhỏ ở góc, khu vực xếp để trống; mảnh sáng viền khi kéo tới đúng vị trí và tự dính khi thả.
 
 | Method | Đường dẫn | Quyền | Mô tả |
 |--------|-----------|-------|-------|
-| GET | `/api/puzzle/games` | đăng nhập | Game đang hiện (và ảnh của nó đang hiện): `[{ id, title, imageId, width, height, rows, cols, active, createdAt }]` |
+| GET | `/api/puzzle/games` | công khai | Game đang hiện (và ảnh của nó đang hiện): `[{ id, title, imageId, width, height, rows, cols, active, createdAt }]` |
 | GET | `/api/puzzle/images/{id}/file` | công khai | Nội dung ảnh (luôn `image/jpeg`, cache 7 ngày). Công khai vì thẻ `<img>` không gửi được header `Authorization`; ảnh đang ẩn trả 400 `Image not found` |
 | POST | `/api/puzzle/scores` | đăng nhập | `{ gameId, durationMs, moves }` → `{ rank, bestMs, personalBest }`. Số mảnh lấy từ game, client không tự khai |
-| GET | `/api/puzzle/leaderboard?gameId=` | đăng nhập | Top 10, mỗi người một dòng (kết quả tốt nhất): `[{ rank, userId, username, durationMs }]` |
+| GET | `/api/puzzle/leaderboard?gameId=` | công khai | Top 10, mỗi người một dòng (kết quả tốt nhất): `[{ rank, userId, username, durationMs }]` |
 | GET | `/api/admin/puzzle/images` | ADMIN | Toàn bộ ảnh trong kho kể cả ảnh đang ẩn |
 | POST | `/api/admin/puzzle/images` | ADMIN | `multipart/form-data`: `file` (bắt buộc), `title` (không gửi thì lấy theo tên file) |
 | GET | `/api/admin/puzzle/images/{id}/file` | ADMIN | Xem cả ảnh đang ẩn |
@@ -282,3 +282,4 @@ Lỗi phát sinh trong filter bảo mật (ví dụ token sai/hết hạn) khôn
 | 0.3 | 2026-10-30 | Quên/đổi mật khẩu, đăng nhập bằng email, Phase 2 (phòng, chat, bạn bè) |
 | 0.4 | 2026-11-15 | Ghép hình: kho ảnh, xếp hạng, vai trò ADMIN và `/api/admin/**` |
 | 0.5 | 2026-11-15 | Ghép hình: admin tạo sẵn game (ảnh + lưới), xếp hạng theo `gameId`; bỏ `GET /api/puzzle/images` |
+| 0.6 | 2026-11-17 | Ghép hình: `GET /api/puzzle/games` và `/api/puzzle/leaderboard` công khai, chơi không cần đăng nhập |
