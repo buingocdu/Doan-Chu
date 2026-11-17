@@ -4,7 +4,9 @@ import com.gameword.dto.PuzzleGameDto;
 import com.gameword.dto.PuzzleGameRequest;
 import com.gameword.dto.PuzzleGameUpdateRequest;
 import com.gameword.dto.PuzzleImageDto;
+import com.gameword.dto.PuzzleImageEditRequest;
 import com.gameword.dto.PuzzleImageUpdateRequest;
+import com.gameword.dto.PuzzleRotateRequest;
 import com.gameword.service.PuzzleService;
 import com.gameword.service.UserService;
 import org.springframework.http.MediaType;
@@ -79,6 +81,23 @@ public class AdminPuzzleController {
     @PutMapping("/images/{id}")
     public ResponseEntity<PuzzleImageDto> update(@PathVariable Long id, @RequestBody PuzzleImageUpdateRequest request) {
         return ResponseEntity.ok(puzzleService.update(id, request));
+    }
+
+    // Sua anh bi nam ngang: xoay anh da luu
+    @PostMapping("/images/{id}/rotate")
+    public ResponseEntity<PuzzleImageDto> rotate(@PathVariable Long id, @RequestBody PuzzleRotateRequest request) {
+        if (request.getDegrees() == null) {
+            throw new RuntimeException("Invalid rotation");
+        }
+        return ResponseEntity.ok(puzzleService.rotate(id, request.getDegrees()));
+    }
+
+    // Sua anh: xoay + cat (tuy chon luu thanh anh moi)
+    @PostMapping("/images/{id}/edit")
+    public ResponseEntity<PuzzleImageDto> edit(@PathVariable Long id, @RequestBody PuzzleImageEditRequest request,
+                                               Principal principal) {
+        Long adminId = userService.getUserIdByUsername(principal.getName());
+        return ResponseEntity.ok(puzzleService.edit(id, request, adminId));
     }
 
     @DeleteMapping("/images/{id}")

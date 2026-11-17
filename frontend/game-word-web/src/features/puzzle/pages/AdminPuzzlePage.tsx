@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { Check, EyeOff, Eye, Pencil, Puzzle, Trash2, UploadCloud, X } from 'lucide-react';
+import { Check, Crop, EyeOff, Eye, Pencil, Puzzle, RotateCcw, RotateCw, Trash2, UploadCloud, X } from 'lucide-react';
 import {
   deletePuzzleImage,
+  getAdminPuzzleGames,
   getAdminPuzzleImages,
   getErrorMessage,
+  rotatePuzzleImage,
   updatePuzzleImage,
   uploadPuzzleImage,
 } from '../../../services/api';
 import StatusMessage from '../../../components/common/StatusMessage';
 import AdminThumb from '../components/AdminThumb';
+import ImageEditor from '../components/ImageEditor';
 import AdminGames from '../components/AdminGames';
-import type { PuzzleImage } from '../../../types/api';
+import type { PuzzleGame, PuzzleImage } from '../../../types/api';
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
@@ -34,11 +37,17 @@ export default function AdminPuzzlePage() {
   const [dragOver, setDragOver] = useState(false);
   const [tab, setTab] = useState<'games' | 'images'>('games');
   const [gameImageId, setGameImageId] = useState<number | null>(null);
+  const [games, setGames] = useState<PuzzleGame[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [editing, setEditing] = useState<PuzzleImage | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
     try {
-      const images = await getAdminPuzzleImages();
+      const [images, gameList] = await Promise.all([getAdminPuzzleImages(), getAdminPuzzleGames()]);
+      setGames(gameList);
+      // Bỏ chọn những ảnh không còn tồn tại
+      setSelected((prev) => new Set([...prev].filter((id) => images.some((i) => i.id === id))));
       setLoad({ status: 'success', images });
     } catch (error) {
       setLoad({ status: 'error', message: getErrorMessage(error, 'Không tải được kho ảnh.') });
@@ -120,10 +129,63 @@ export default function AdminPuzzlePage() {
     setEditingId(null);
   };
 
+  const gameCount = (imageId: number) => games.filter((g) => g.imageId === imageId).length;
+
+  const describeLoss = (games: number) =>
+    games > 0
+      ? `Ảnh đang được dùng trong ${games} game; các game đó và toàn bộ bảng xếp hạng của chúng cũng sẽ bị xóa.`
+      : 'Ảnh chưa được dùng trong game nào.';
+
   const remove = (image: PuzzleImage) => {
-    if (!window.confirm(`Xóa ảnh “${image.title}”? Kết quả xếp hạng của ảnh này cũng bị xóa.`)) return;
+    if (!window.confirm(`Xóa ảnh “${image.title}”?\n${describeLoss(gameCount(image.id))}\nThao tác không thể hoàn tác.`)) {
+      return;
+    }
     void run(() => deletePuzzleImage(image.id), 'Đã xóa ảnh.');
   };
+
+  const removeSelected = async () => {
+    if (load.status !== 'success' || selected.size === 0) return;
+    const chosen = load.images.filter((i) => selected.has(i.id));
+    const affected = chosen.reduce((sum, i) => sum + gameCount(i.id), 0);
+    if (
+      !window.confirm(
+        `Xóa ${chosen.length} ảnh đã chọn?\n${describeLoss(affected).replace('Ảnh đang được dùng trong', 'Các ảnh đang được dùng trong')}\nThao tác không thể hoàn tác.`,
+      )
+    ) {
+      return;
+    }
+    setMessage(null);
+    let ok = 0;
+    const errors: string[] = [];
+    for (const image of chosen) {
+      try {
+        await deletePuzzleImage(image.id);
+        ok += 1;
+      } catch (error) {
+        errors.push(`${image.title}: ${getErrorMessage(error, 'xóa thất bại')}`);
+      }
+    }
+    setSelected(new Set());
+    await reload();
+    setMessage(
+      errors.length > 0
+        ? { kind: 'error', text: `${ok > 0 ? `Đã xóa ${ok} ảnh. ` : ''}Lỗi — ${errors.join('; ')}` }
+        : { kind: 'success', text: `Đã xóa ${ok} ảnh.` },
+    );
+  };
+
+  const toggleSelected = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = () =>
+    setSelected((prev) =>
+      load.status === 'success' && prev.size < load.images.length ? new Set(load.images.map((i) => i.id)) : new Set(),
+    );
 
   return (
     <section className="page admin-page">
@@ -239,9 +301,40 @@ export default function AdminPuzzlePage() {
         <StatusMessage kind="empty">Kho chưa có ảnh nào. Hãy thêm ảnh ở trên.</StatusMessage>
       )}
       {load.status === 'success' && load.images.length > 0 && (
+        <div className="admin-bulk" role="group" aria-label="Chọn nhiều ảnh">
+          <label className="admin-check">
+            <input
+              type="checkbox"
+              checked={selected.size === load.images.length}
+              ref={(el) => {
+                if (el) el.indeterminate = selected.size > 0 && selected.size < load.images.length;
+              }}
+              onChange={toggleAll}
+            />
+            Chọn tất cả
+          </label>
+          <span className="muted">{selected.size > 0 ? `Đã chọn ${selected.size}/${load.images.length}` : `${load.images.length} ảnh`}</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm admin-danger"
+            disabled={selected.size === 0}
+            onClick={() => void removeSelected()}
+          >
+            <Trash2 size={16} aria-hidden="true" /> Xóa đã chọn{selected.size > 0 ? ` (${selected.size})` : ''}
+          </button>
+        </div>
+      )}
+      {load.status === 'success' && load.images.length > 0 && (
         <ul className="admin-list">
           {load.images.map((image) => (
             <li key={image.id} className={`card admin-item${image.active ? '' : ' is-hidden'}`}>
+              <input
+                type="checkbox"
+                className="admin-item-check"
+                aria-label={`Chọn ảnh ${image.title}`}
+                checked={selected.has(image.id)}
+                onChange={() => toggleSelected(image.id)}
+              />
               <AdminThumb image={image} />
               <div className="admin-item-body">
                 {editingId === image.id ? (
@@ -277,6 +370,7 @@ export default function AdminPuzzlePage() {
                 )}
                 <span className="muted">
                   {image.width}×{image.height} · {formatSize(image.sizeBytes)}
+                  {gameCount(image.id) > 0 ? ` · ${gameCount(image.id)} game` : ''}
                   {image.active ? '' : ' · đang ẩn'}
                 </span>
               </div>
@@ -309,6 +403,33 @@ export default function AdminPuzzlePage() {
                   {image.active ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                   <span className="hide-sm">{image.active ? 'Ẩn' : 'Hiện'}</span>
                 </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  aria-label={`Sửa ảnh ${image.title}`}
+                  title="Xoay và cắt ảnh"
+                  onClick={() => setEditing(image)}
+                >
+                  <Crop size={16} aria-hidden="true" /> <span className="hide-sm">Sửa ảnh</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  aria-label={`Xoay trái ảnh ${image.title}`}
+                  title="Xoay trái 90°"
+                  onClick={() => void run(() => rotatePuzzleImage(image.id, -90), 'Đã xoay ảnh.')}
+                >
+                  <RotateCcw size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  aria-label={`Xoay phải ảnh ${image.title}`}
+                  title="Xoay phải 90°"
+                  onClick={() => void run(() => rotatePuzzleImage(image.id, 90), 'Đã xoay ảnh.')}
+                >
+                  <RotateCw size={16} aria-hidden="true" />
+                </button>
                 <button type="button" className="btn btn-ghost btn-sm admin-danger" onClick={() => remove(image)}>
                   <Trash2 size={16} aria-hidden="true" /> <span className="hide-sm">Xóa</span>
                 </button>
@@ -318,6 +439,22 @@ export default function AdminPuzzlePage() {
         </ul>
       )}
         </>
+      )}
+
+      {editing && (
+        <ImageEditor
+          image={editing}
+          gameCount={gameCount(editing.id)}
+          onClose={() => setEditing(null)}
+          onSaved={(updated, asCopy) => {
+            setEditing(null);
+            void reload();
+            setMessage({
+              kind: 'success',
+              text: asCopy ? `Đã lưu ảnh mới “${updated.title}”.` : 'Đã lưu thay đổi cho ảnh.',
+            });
+          }}
+        />
       )}
     </section>
   );

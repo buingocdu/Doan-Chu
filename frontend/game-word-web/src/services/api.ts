@@ -186,6 +186,25 @@ export const uploadPuzzleImage = (file: File, title?: string) => {
 export const updatePuzzleImage = (id: number, data: { title?: string; active?: boolean }) =>
   API.put<PuzzleImage>(`/admin/puzzle/images/${id}`, data).then((r) => r.data);
 
+// Xoay ảnh trong kho theo chiều kim đồng hồ (90, 180, 270 hoặc -90); sửa ảnh bị nằm ngang
+export const rotatePuzzleImage = (id: number, degrees: number) =>
+  API.post<PuzzleImage>(`/admin/puzzle/images/${id}/rotate`, { degrees }).then((r) => r.data);
+
+/** Sửa ảnh trong kho: xoay (độ, theo chiều kim đồng hồ) rồi cắt theo tỉ lệ 0..1 của ảnh đã xoay */
+export interface PuzzleImageEdit {
+  degrees: number;
+  cropX?: number;
+  cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
+  /** true: lưu thành ảnh mới, giữ nguyên ảnh gốc */
+  asCopy?: boolean;
+  title?: string;
+}
+
+export const editPuzzleImage = (id: number, data: PuzzleImageEdit) =>
+  API.post<PuzzleImage>(`/admin/puzzle/images/${id}/edit`, data).then((r) => r.data);
+
 export const deletePuzzleImage = (id: number) => API.delete(`/admin/puzzle/images/${id}`).then(() => undefined);
 
 export const getAdminPuzzleGames = () => API.get<PuzzleGame[]>('/admin/puzzle/games').then((r) => r.data);
@@ -249,6 +268,9 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Invalid request': 'Yêu cầu không hợp lệ.',
   // Ghép hình
   'Image not found': 'Không tìm thấy ảnh.',
+  'Invalid rotation': 'Góc xoay không hợp lệ.',
+  'Invalid crop': 'Vùng cắt không hợp lệ.',
+  'Nothing to edit': 'Chưa có thay đổi nào để lưu.',
   'Puzzle not found': 'Game ghép hình này không còn nữa hoặc đang bị ẩn.',
   'Image file is required': 'Vui lòng chọn một file ảnh.',
   'Image too large': 'Ảnh quá lớn (tối đa 8MB).',

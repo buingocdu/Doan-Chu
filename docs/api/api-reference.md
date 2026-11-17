@@ -239,14 +239,16 @@ Game chơi đơn do quản trị tạo sẵn: một game = một ảnh trong kho
 | Method | Đường dẫn | Quyền | Mô tả |
 |--------|-----------|-------|-------|
 | GET | `/api/puzzle/games` | công khai | Game đang hiện (và ảnh của nó đang hiện): `[{ id, title, imageId, width, height, rows, cols, active, createdAt }]` |
-| GET | `/api/puzzle/images/{id}/file` | công khai | Nội dung ảnh (luôn `image/jpeg`, cache 7 ngày). Công khai vì thẻ `<img>` không gửi được header `Authorization`; ảnh đang ẩn trả 400 `Image not found` |
+| GET | `/api/puzzle/images/{id}/file` | công khai | Nội dung ảnh (luôn `image/jpeg`, có ETag). Công khai vì thẻ `<img>` không gửi được header `Authorization`; ảnh đang ẩn trả 400 `Image not found` |
 | POST | `/api/puzzle/scores` | đăng nhập | `{ gameId, durationMs, moves }` → `{ rank, bestMs, personalBest }`. Số mảnh lấy từ game, client không tự khai |
 | GET | `/api/puzzle/leaderboard?gameId=` | công khai | Top 10, mỗi người một dòng (kết quả tốt nhất): `[{ rank, userId, username, durationMs }]` |
 | GET | `/api/admin/puzzle/images` | ADMIN | Toàn bộ ảnh trong kho kể cả ảnh đang ẩn |
 | POST | `/api/admin/puzzle/images` | ADMIN | `multipart/form-data`: `file` (bắt buộc), `title` (không gửi thì lấy theo tên file) |
 | GET | `/api/admin/puzzle/images/{id}/file` | ADMIN | Xem cả ảnh đang ẩn |
 | PUT | `/api/admin/puzzle/images/{id}` | ADMIN | `{ title?, active? }` |
-| DELETE | `/api/admin/puzzle/images/{id}` | ADMIN | Xóa ảnh kèm các game dùng ảnh và xếp hạng của chúng (204) |
+| POST | `/api/admin/puzzle/images/{id}/rotate` | ADMIN | `{ degrees }`: 90, 180, 270 hoặc -90, theo chiều kim đồng hồ. Sửa ảnh bị nằm ngang |
+| POST | `/api/admin/puzzle/images/{id}/edit` | ADMIN | Xoay rồi cắt: `{ degrees?, cropX?, cropY?, cropWidth?, cropHeight?, asCopy?, title? }`. Vùng cắt là tỉ lệ 0..1 của ảnh **sau khi xoay**, phải đủ cả 4 giá trị. `asCopy: true` lưu thành ảnh mới (giữ ảnh gốc). Không có thay đổi nào thì 400 `Nothing to edit` |
+| DELETE | `/api/admin/puzzle/images/{id}` | ADMIN | Xóa ảnh kèm các game dùng ảnh và xếp hạng của chúng (204). Giao diện cho chọn nhiều ảnh để xóa một lượt và cảnh báo số game bị xóa theo |
 | GET | `/api/admin/puzzle/games` | ADMIN | Mọi game kể cả game đang ẩn |
 | POST | `/api/admin/puzzle/games` | ADMIN | `{ imageId, rows, cols, title? }`; `rows`, `cols` trong 2–12; không gửi `title` thì lấy tên ảnh |
 | PUT | `/api/admin/puzzle/games/{id}` | ADMIN | `{ title?, active? }`. Không đổi được lưới (sẽ làm sai xếp hạng): muốn đổi thì tạo game mới |
@@ -254,8 +256,10 @@ Game chơi đơn do quản trị tạo sẵn: một game = một ảnh trong kho
 
 - Phân quyền: `users.role` là `USER` hoặc `ADMIN`; `/api/admin/**` yêu cầu `ROLE_ADMIN` (403 nếu không). Quyền được nạp từ DB ở mỗi request, không lấy từ JWT. `AuthResponse` có thêm `role` chỉ để ẩn/hiện giao diện. Tài khoản có tên trong `app.admin-usernames` (biến môi trường `ADMIN_USERNAMES`, phân cách bằng dấu phẩy, không phân biệt hoa thường) được nâng lên ADMIN lúc khởi động và lúc đăng ký. Người vừa được cấp quyền cần đăng nhập lại để giao diện hiện menu quản trị.
 - Upload: tối đa `puzzle.max-upload-bytes` (8MB), cạnh ngắn tối thiểu `puzzle.min-image-side` (300px), tối đa 40 triệu điểm ảnh. Server giải mã rồi mã hóa lại thành JPEG, thu nhỏ cạnh dài về `puzzle.max-image-side` (1600px); nội dung không phải ảnh bị từ chối. Nginx cho phép body 10MB riêng cho `/api/admin/puzzle/images`.
+- Ảnh chụp từ điện thoại: ảnh dọc thường lưu dạng ngang kèm cờ xoay EXIF (Orientation 1–8). Khi upload server đọc cờ này và xoay ảnh đúng chiều trước khi mã hóa lại (mã hóa lại làm mất EXIF). Ảnh đã lưu sai chiều từ trước thì dùng xoay/sửa ảnh ở trên.
+- Tải ảnh `GET /api/puzzle/images/{id}/file` trả `ETag` và `Cache-Control: no-cache` (trình duyệt luôn hỏi lại, nhận 304 nếu không đổi) để ảnh vừa xoay/cắt hiện ngay thay vì bản cũ trong cache.
 - Chống kết quả giả: `durationMs` phải ≥ số mảnh × `puzzle.min-ms-per-piece` (300ms) và `moves` ≥ số mảnh / 2, nếu không trả 400 `Invalid result`. Ván có dùng gợi ý không gửi kết quả.
-- Lỗi 400: `Image not found`, `Puzzle not found`, `Image file is required`, `Image too large`, `Image too small`, `Image dimensions too large`, `Unsupported image format`, `Title is required`, `Invalid grid size`, `Invalid result`.
+- Lỗi 400: `Image not found`, `Puzzle not found`, `Invalid rotation`, `Invalid crop`, `Nothing to edit`, `Image file is required`, `Image too large`, `Image too small`, `Image dimensions too large`, `Unsupported image format`, `Title is required`, `Invalid grid size`, `Invalid result`.
 
 ## 5. Định dạng lỗi (`GlobalExceptionHandler`)
 
@@ -283,3 +287,4 @@ Lỗi phát sinh trong filter bảo mật (ví dụ token sai/hết hạn) khôn
 | 0.4 | 2026-11-15 | Ghép hình: kho ảnh, xếp hạng, vai trò ADMIN và `/api/admin/**` |
 | 0.5 | 2026-11-15 | Ghép hình: admin tạo sẵn game (ảnh + lưới), xếp hạng theo `gameId`; bỏ `GET /api/puzzle/images` |
 | 0.6 | 2026-11-17 | Ghép hình: `GET /api/puzzle/games` và `/api/puzzle/leaderboard` công khai, chơi không cần đăng nhập |
+| 0.7 | 2026-11-17 | Ghép hình: đọc cờ xoay EXIF khi upload; `rotate`, `edit` (xoay + cắt, lưu bản sao); ETag cho ảnh |

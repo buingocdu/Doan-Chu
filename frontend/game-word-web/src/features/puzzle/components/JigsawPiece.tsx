@@ -28,6 +28,7 @@ interface JigsawPieceProps {
   onPointerDown: (index: number, event: PointerEvent<HTMLDivElement>) => void;
   onPointerMove: (event: PointerEvent<HTMLDivElement>) => void;
   onPointerUp: (event: PointerEvent<HTMLDivElement>) => void;
+  onPointerCancel: (event: PointerEvent<HTMLDivElement>) => void;
 }
 
 // Mỗi mảnh là một SVG cắt ảnh theo đường viền: ảnh được dịch sao cho đúng phần của ô (row, col)
@@ -41,7 +42,7 @@ function JigsawPiece(props: JigsawPieceProps) {
       onPointerDown={placed ? undefined : (e) => props.onPointerDown(index, e)}
       onPointerMove={props.onPointerMove}
       onPointerUp={props.onPointerUp}
-      onPointerCancel={props.onPointerUp}
+      onPointerCancel={props.onPointerCancel}
       role="img"
       aria-label={`Mảnh hàng ${row + 1}, cột ${col + 1}${placed ? ', đã đặt đúng chỗ' : ''}`}
     >

@@ -232,6 +232,64 @@ class PuzzleFlowIntegrationTest {
         assertEquals(2, rows.get(1).get("rank").asInt());
     }
 
+    @Test
+    void adminEditsImageByCroppingAndRotatingOrSavesACopy() throws Exception {
+        String admin = register(true);
+        String user = register(false);
+        long id = uploadImage(admin, "Can sua"); // 800x600
+
+        // Nguoi thuong khong sua duoc
+        mvc.perform(post("/api/admin/puzzle/images/" + id + "/edit").header("Authorization", user)
+            .contentType("application/json").content("{\"degrees\":90}")).andExpect(status().isForbidden());
+        // Khong co gi de sua / vung cat sai
+        mvc.perform(post("/api/admin/puzzle/images/" + id + "/edit").header("Authorization", admin)
+            .contentType("application/json").content("{}")).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/admin/puzzle/images/" + id + "/edit").header("Authorization", admin)
+            .contentType("application/json").content("{\"cropX\":0.6,\"cropY\":0,\"cropWidth\":0.6,\"cropHeight\":1}"))
+            .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/admin/puzzle/images/" + id + "/edit").header("Authorization", admin)
+            .contentType("application/json").content("{\"cropX\":0,\"cropY\":0}")).andExpect(status().isBadRequest());
+
+        // Xoay phai roi cat nua tren: 600x800 -> cat y 0..0.5 => 600x400
+        MvcResult edited = mvc.perform(post("/api/admin/puzzle/images/" + id + "/edit").header("Authorization", admin)
+                .contentType("application/json")
+                .content("{\"degrees\":90,\"cropX\":0,\"cropY\":0,\"cropWidth\":1,\"cropHeight\":0.5}"))
+            .andExpect(status().isOk()).andReturn();
+        JsonNode body = JSON.readTree(edited.getResponse().getContentAsString());
+        assertEquals(id, body.get("id").asLong());
+        assertEquals(600, body.get("width").asInt());
+        assertEquals(400, body.get("height").asInt());
+
+        // Luu thanh anh moi: anh goc giu nguyen
+        MvcResult copy = mvc.perform(post("/api/admin/puzzle/images/" + id + "/edit").header("Authorization", admin)
+                .contentType("application/json")
+                .content("{\"cropX\":0,\"cropY\":0,\"cropWidth\":0.5,\"cropHeight\":1,\"asCopy\":true,\"title\":\"Ban sao\"}"))
+            .andExpect(status().isOk()).andReturn();
+        JsonNode copyBody = JSON.readTree(copy.getResponse().getContentAsString());
+        assertTrue(copyBody.get("id").asLong() != id);
+        assertEquals("Ban sao", copyBody.get("title").asText());
+        assertEquals(300, copyBody.get("width").asInt());
+        String list = mvc.perform(get("/api/admin/puzzle/images").header("Authorization", admin))
+            .andReturn().getResponse().getContentAsString();
+        assertTrue(list.contains("\"id\":" + id) && list.contains("\"id\":" + copyBody.get("id").asLong()));
+    }
+
+    @Test
+    void imageFileUsesEtagAndAnswers304WhenUnchangedThenNewBytesAfterRotate() throws Exception {
+        String admin = register(true);
+        long id = uploadImage(admin, "Cache");
+        MvcResult first = mvc.perform(get("/api/puzzle/images/" + id + "/file")).andExpect(status().isOk()).andReturn();
+        String etag = first.getResponse().getHeader("ETag");
+        assertTrue(etag != null && !etag.isBlank());
+        mvc.perform(get("/api/puzzle/images/" + id + "/file").header("If-None-Match", etag))
+            .andExpect(status().isNotModified());
+        // Xoay anh thi ETag doi nen trinh duyet tai ban moi
+        mvc.perform(post("/api/admin/puzzle/images/" + id + "/rotate").header("Authorization", admin)
+            .contentType("application/json").content("{\"degrees\":90}")).andExpect(status().isOk());
+        mvc.perform(get("/api/puzzle/images/" + id + "/file").header("If-None-Match", etag))
+            .andExpect(status().isOk());
+    }
+
     private static String score(long gameId, long ms, int moves) {
         return "{\"gameId\":" + gameId + ",\"durationMs\":" + ms + ",\"moves\":" + moves + "}";
     }

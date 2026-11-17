@@ -1042,3 +1042,17 @@ nav {
     display: none;
   }
 }
+
+/* Điện thoại xoay ngang (thấp): thanh trên cùng không dính và gọn lại để dành chỗ cho nội dung */
+@media (orientation: landscape) and (max-height: 520px) {
+  .app-header {
+    position: static;
+    padding-top: max(0.3rem, env(safe-area-inset-top));
+    padding-bottom: 0.3rem;
+  }
+
+  .main {
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+  }
+}

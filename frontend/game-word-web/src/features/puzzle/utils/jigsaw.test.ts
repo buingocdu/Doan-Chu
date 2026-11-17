@@ -10,6 +10,8 @@ import {
   formatDuration,
   homePosition,
   isEdgePiece,
+  LANDSCAPE_MAX_HEIGHT,
+  pickLayoutMode,
   isNearHome,
   SNAP_MAX,
   SNAP_MIN,
@@ -232,6 +234,50 @@ describe('giới hạn kéo không chặn vị trí đúng', () => {
           const home = homePosition(layout, i);
           expect(clampToWorkspace(layout, home)).toEqual(home);
         }
+      }
+    }
+  });
+});
+
+describe('chọn chế độ bố cục theo kích thước màn hình', () => {
+  it('điện thoại dọc là compact, xoay ngang là landscape, máy tính/tablet là wide', () => {
+    expect(pickLayoutMode(390, 844)).toBe('compact');
+    expect(pickLayoutMode(844, 390)).toBe('landscape');
+    expect(pickLayoutMode(932, 430)).toBe('landscape');
+    expect(pickLayoutMode(1024, 768)).toBe('wide');
+    expect(pickLayoutMode(1440, 900)).toBe('wide');
+    expect(pickLayoutMode(768, 1024)).toBe('wide');
+    // Ngang nhưng đủ cao thì vẫn là wide
+    expect(pickLayoutMode(1280, LANDSCAPE_MAX_HEIGHT)).toBe('wide');
+  });
+});
+
+describe('bố cục xoay ngang', () => {
+  it('khung bên trái, khay bên phải, thấp hơn nhiều so với bố cục dọc, hình mẫu không đè lên khay', () => {
+    for (const aspect of [0.5, 1, 1.5, 3]) {
+      const layout = computeLayout(aspect, 4, 4, 'landscape');
+      const wide = computeLayout(aspect, 4, 4, 'wide');
+      expect(layout.height).toBeLessThan(wide.height);
+      if (aspect <= 1.5) expect(layout.height).toBeLessThan(wide.height * 0.7);
+      expect(layout.board.x + layout.board.w).toBeLessThanOrEqual(layout.tray.x);
+      expect(layout.thumb.y + layout.thumb.h).toBeLessThanOrEqual(layout.tray.y);
+      expect(layout.tray.x + layout.tray.w).toBeLessThanOrEqual(layout.width);
+      expect(layout.tray.y + layout.tray.h).toBeLessThanOrEqual(layout.height);
+      expect(layout.board.y + layout.board.h).toBeLessThanOrEqual(layout.height);
+    }
+  });
+
+  it('mọi mảnh rải trong khay bên phải và mọi vị trí đúng đều kéo tới được', () => {
+    for (const aspect of [0.5, 1.5, 3]) {
+      const layout = computeLayout(aspect, 5, 6, 'landscape');
+      for (const p of scatterPositions(layout, 30, createRng(9))) {
+        expect(p.x).toBeGreaterThanOrEqual(layout.tray.x);
+        expect(p.x + layout.cellW).toBeLessThanOrEqual(layout.tray.x + layout.tray.w + 0.001);
+        expect(p.y).toBeGreaterThanOrEqual(layout.tray.y);
+      }
+      for (let i = 0; i < 30; i++) {
+        const home = homePosition(layout, i);
+        expect(clampToWorkspace(layout, home)).toEqual(home);
       }
     }
   });

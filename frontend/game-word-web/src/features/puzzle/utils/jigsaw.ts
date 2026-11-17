@@ -8,6 +8,18 @@ export const LOGICAL_WIDTH = 1000;
 export const COMPACT_LOGICAL_WIDTH = 520;
 /** Màn hình hẹp hơn mức này (px) thì dùng bố cục gọn */
 export const COMPACT_BREAKPOINT = 640;
+/** Màn hình ngang thấp hơn mức này (px) thì xếp khung bên trái, khay bên phải để vừa chiều cao */
+export const LANDSCAPE_MAX_HEIGHT = 520;
+
+/** wide: khung ở giữa, khay phía dưới; compact: điện thoại dọc; landscape: điện thoại xoay ngang (khung | khay) */
+export type LayoutMode = 'wide' | 'compact' | 'landscape';
+
+export function pickLayoutMode(viewportWidth: number, viewportHeight: number): LayoutMode {
+  if (viewportWidth > viewportHeight && viewportHeight < LANDSCAPE_MAX_HEIGHT && viewportWidth >= COMPACT_BREAKPOINT) {
+    return 'landscape';
+  }
+  return viewportWidth < COMPACT_BREAKPOINT ? 'compact' : 'wide';
+}
 
 export interface Difficulty {
   id: string;
@@ -88,7 +100,7 @@ export interface Layout {
   cellH: number;
   /** Lề quanh mỗi mảnh để chứa ngàm lồi */
   pad: number;
-  /** Dải phía dưới khung, nơi các mảnh được rải lúc đầu */
+  /** Khay nơi các mảnh được rải lúc đầu (dưới khung; bên phải khung khi xoay ngang) */
   tray: Rect;
   /** Hình mẫu thu nhỏ ở góc trên bên phải */
   thumb: Rect;
@@ -105,12 +117,23 @@ const TAB_HEIGHT = 0.255;
 const THUMB_MAX = 160;
 const THUMB_MARGIN = 12;
 
-export function computeLayout(aspect: number, rows: number, cols: number, compact = false): Layout {
+const LANDSCAPE_HEIGHT = 448;
+
+/** `mode` nhận cả boolean cho tương thích: true = compact */
+export function computeLayout(
+  aspect: number,
+  rows: number,
+  cols: number,
+  mode: LayoutMode | boolean = 'wide',
+): Layout {
+  const layoutMode: LayoutMode = typeof mode === 'boolean' ? (mode ? 'compact' : 'wide') : mode;
+  const compact = layoutMode === 'compact';
+  const landscape = layoutMode === 'landscape';
   const safeAspect = Number.isFinite(aspect) && aspect > 0 ? aspect : 1;
   const logicalWidth = compact ? COMPACT_LOGICAL_WIDTH : LOGICAL_WIDTH;
-  const boardMaxW = compact ? 400 : BOARD_MAX_W;
-  const boardMaxH = compact ? 520 : BOARD_MAX_H;
-  const thumbMax = compact ? 100 : THUMB_MAX;
+  const boardMaxW = landscape ? 560 : compact ? 400 : BOARD_MAX_W;
+  const boardMaxH = landscape ? 400 : compact ? 520 : BOARD_MAX_H;
+  const thumbMax = landscape ? 120 : compact ? 100 : THUMB_MAX;
   const margin = compact ? 8 : THUMB_MARGIN;
   let w = boardMaxW;
   let h = w / safeAspect;
@@ -121,14 +144,31 @@ export function computeLayout(aspect: number, rows: number, cols: number, compac
   const cellW = w / cols;
   const cellH = h / rows;
   const pad = Math.ceil(Math.min(cellW, cellH) * (TAB_HEIGHT + 0.03));
-  // Bố cục gọn: khung sát trái, hình mẫu ở lề phải; bố cục rộng: khung ở giữa
-  const board = { x: compact ? margin : (logicalWidth - w) / 2, y: BOARD_TOP, w, h };
-  const trayTop = board.y + h + TRAY_GAP;
-  const tray = { x: 0, y: trayTop, w: logicalWidth, h: TRAY_HEIGHT };
-  // Hình mẫu thu nhỏ nằm trong lề phải của khung (khung rộng tối đa 640 nên không đè lên nhau)
+  // compact/landscape: khung sát trái, hình mẫu ở lề phải; wide: khung ở giữa
+  const board = { x: compact || landscape ? margin : (logicalWidth - w) / 2, y: BOARD_TOP, w, h };
   const thumbW = safeAspect >= 1 ? thumbMax : thumbMax * safeAspect;
   const thumbH = safeAspect >= 1 ? thumbMax / safeAspect : thumbMax;
   const thumb = { x: logicalWidth - thumbW - margin, y: BOARD_TOP, w: thumbW, h: thumbH };
+
+  if (landscape) {
+    // Khung bên trái, khay bên phải (dưới hình mẫu): toàn bộ bố cục thấp để vừa màn hình ngang
+    const trayX = board.x + w + 24;
+    const trayY = thumb.y + thumbH + 10;
+    return {
+      width: logicalWidth,
+      height: LANDSCAPE_HEIGHT,
+      thumb,
+      board,
+      rows,
+      cols,
+      cellW,
+      cellH,
+      pad,
+      tray: { x: trayX, y: trayY, w: logicalWidth - trayX - 8, h: LANDSCAPE_HEIGHT - trayY - 8 },
+    };
+  }
+
+  const trayTop = board.y + h + TRAY_GAP;
   return {
     width: logicalWidth,
     height: trayTop + TRAY_HEIGHT + BOTTOM_MARGIN,
@@ -139,7 +179,7 @@ export function computeLayout(aspect: number, rows: number, cols: number, compac
     cellW,
     cellH,
     pad,
-    tray,
+    tray: { x: 0, y: trayTop, w: logicalWidth, h: TRAY_HEIGHT },
   };
 }
 
@@ -173,8 +213,8 @@ export function homePosition(layout: Layout, index: number): Point {
 
 /** Rải ngẫu nhiên mọi mảnh vào dải phía dưới khung (cho phép chồng nhau) */
 export function scatterPositions(layout: Layout, count: number, rng: () => number): Point[] {
-  const minX = layout.pad;
-  const maxX = Math.max(minX, layout.width - layout.cellW - layout.pad);
+  const minX = layout.tray.x + layout.pad;
+  const maxX = Math.max(minX, layout.tray.x + layout.tray.w - layout.cellW - layout.pad);
   const minY = layout.tray.y + layout.pad;
   const maxY = Math.max(minY, layout.tray.y + layout.tray.h - layout.cellH - layout.pad);
   return Array.from({ length: count }, () => ({

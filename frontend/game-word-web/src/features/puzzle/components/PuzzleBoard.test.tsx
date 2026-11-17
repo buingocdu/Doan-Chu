@@ -168,4 +168,110 @@ describe('PuzzleBoard', () => {
     expect(placedPiece).toBeDefined();
     expect(placedPiece?.classList.contains('is-filtered')).toBe(false);
   });
+
+  it('xoay ngang giữa ván: mảnh đã đặt về đúng chỗ mới, mảnh còn lại rải lại, tiến độ giữ nguyên', () => {
+    const originalW = window.innerWidth;
+    const originalH = window.innerHeight;
+    try {
+      renderBoard();
+      const wide = computeLayout(1, 2, 2);
+      dragPieceTo(0, homePosition(wide, 0));
+      expect(screen.getByText('Đã đặt 1/4')).toBeInTheDocument();
+
+      // Điện thoại xoay ngang 844x390
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 844 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+      act(() => {
+        window.dispatchEvent(new Event('orientationchange'));
+        window.dispatchEvent(new Event('resize'));
+      });
+
+      const land = computeLayout(1, 2, 2, 'landscape');
+      const pieces = screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'));
+      expect(pieces).toHaveLength(4);
+      expect(screen.getByText('Đã đặt 1/4')).toBeInTheDocument();
+      const placedPiece = pieces[0];
+      expect(placedPiece.classList.contains('is-placed')).toBe(true);
+      const home = homePosition(land, 0);
+      expect(parseFloat(placedPiece.style.left)).toBeCloseTo(home.x - land.pad);
+      expect(parseFloat(placedPiece.style.top)).toBeCloseTo(home.y - land.pad);
+      // Mảnh chưa đặt nằm trong khay bên phải
+      for (const piece of pieces.slice(1)) {
+        expect(parseFloat(piece.style.left) + land.pad).toBeGreaterThanOrEqual(land.tray.x);
+      }
+
+      // Kéo thả vẫn dùng được ở bố cục mới
+      const piece1 = pieces[1];
+      const left = parseFloat(piece1.style.left);
+      const top = parseFloat(piece1.style.top);
+      const h1 = homePosition(land, 1);
+      // Khi ngang, khung co theo chiều cao màn hình (390 - 8) nên toạ độ con trỏ nhân với tỉ lệ này
+      const k = Math.min(1, Math.max(0.35, (390 - 8) / land.height));
+      fireEvent.pointerDown(piece1, { pointerId: 2, clientX: 100, clientY: 100, button: 0 });
+      fireEvent.pointerMove(piece1, {
+        pointerId: 2,
+        clientX: 100 + (h1.x - (left + land.pad)) * k,
+        clientY: 100 + (h1.y - (top + land.pad)) * k,
+      });
+      fireEvent.pointerUp(piece1, { pointerId: 2 });
+      expect(screen.getByText('Đã đặt 2/4')).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalW });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalH });
+    }
+  });
+
+  it('hệ điều hành huỷ thao tác (chụm zoom) thì không tính lượt kéo và không bắt vào khung', () => {
+    renderBoard();
+    const layout = computeLayout(1, 2, 2);
+    const piece = screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'))[0];
+    const left = parseFloat(piece.style.left);
+    const top = parseFloat(piece.style.top);
+    const home = homePosition(layout, 0);
+    fireEvent.pointerDown(piece, { pointerId: 1, clientX: 100, clientY: 100, button: 0 });
+    fireEvent.pointerMove(piece, {
+      pointerId: 1,
+      clientX: 100 + (home.x - (left + layout.pad)),
+      clientY: 100 + (home.y - (top + layout.pad)),
+    });
+    fireEvent.pointerCancel(piece, { pointerId: 1 });
+    expect(screen.getByText('0 lượt kéo')).toBeInTheDocument();
+    expect(screen.getByText('Đã đặt 0/4')).toBeInTheDocument();
+    expect(piece.classList.contains('is-glowing')).toBe(false);
+  });
+
+  it('nút Toàn màn hình phủ kín trang bằng CSS (trình duyệt không hỗ trợ API) và thoát được', () => {
+    const { container } = render(
+      <PuzzleBoard imageUrl="/x.jpg" aspect={1} rows={2} cols={2} onFinish={vi.fn()} onExit={vi.fn()} />,
+    );
+    const root = container.querySelector('.puzzle-play') as HTMLElement;
+    expect(root.classList.contains('is-fullscreen')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Toàn màn hình' }));
+    expect(root.classList.contains('is-fullscreen')).toBe(true);
+    expect(document.body.classList.contains('puzzle-fullscreen-lock')).toBe(true);
+    // Vẫn còn đủ mảnh và thanh công cụ trong chế độ toàn màn hình
+    expect(screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'))).toHaveLength(4);
+    fireEvent.click(screen.getByRole('button', { name: 'Thoát toàn màn hình' }));
+    expect(root.classList.contains('is-fullscreen')).toBe(false);
+    expect(document.body.classList.contains('puzzle-fullscreen-lock')).toBe(false);
+  });
+
+  it('có Fullscreen API thì gọi requestFullscreen; thoát bằng Esc (fullscreenchange) thì tự bỏ lớp phủ', () => {
+    const request = vi.fn(() => Promise.resolve());
+    HTMLElement.prototype.requestFullscreen = request;
+    const { container } = render(
+      <PuzzleBoard imageUrl="/x.jpg" aspect={1} rows={2} cols={2} onFinish={vi.fn()} onExit={vi.fn()} />,
+    );
+    const root = container.querySelector('.puzzle-play') as HTMLElement;
+    fireEvent.click(screen.getByRole('button', { name: 'Toàn màn hình' }));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(root.classList.contains('is-fullscreen')).toBe(true);
+    // Người dùng nhấn Esc: trình duyệt đã thoát (document.fullscreenElement rỗng) và phát sự kiện
+    act(() => {
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+    expect(root.classList.contains('is-fullscreen')).toBe(false);
+    // @ts-expect-error dọn mock
+    delete HTMLElement.prototype.requestFullscreen;
+  });
 });

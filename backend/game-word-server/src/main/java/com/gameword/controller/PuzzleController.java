@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.time.Duration;
 import java.util.List;
 
 // Nguoi choi: xem game admin da tao, tai anh, gui ket qua, bang xep hang
@@ -39,7 +38,9 @@ public class PuzzleController {
         PuzzleService.PuzzleFile file = puzzleService.file(id, false);
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(file.contentType()))
-            .cacheControl(CacheControl.maxAge(Duration.ofDays(7)).cachePublic())
+            // Anh co the bi admin xoay/doi: luon hoi lai bang ETag (304 neu khong doi) thay vi cache cung 7 ngay
+            .cacheControl(CacheControl.noCache().cachePublic())
+            .eTag("\"" + Integer.toHexString(java.util.Arrays.hashCode(file.data())) + "\"")
             .header("X-Content-Type-Options", "nosniff")
             .body(file.data());
     }

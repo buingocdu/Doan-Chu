@@ -5,6 +5,7 @@ import com.gameword.dto.PuzzleGameDto;
 import com.gameword.dto.PuzzleGameRequest;
 import com.gameword.dto.PuzzleGameUpdateRequest;
 import com.gameword.dto.PuzzleImageDto;
+import com.gameword.dto.PuzzleImageEditRequest;
 import com.gameword.dto.PuzzleImageUpdateRequest;
 import com.gameword.dto.PuzzleRankEntry;
 import com.gameword.dto.PuzzleScoreRequest;
@@ -104,6 +105,65 @@ public class PuzzleService {
         if (request.getActive() != null) {
             image.setActive(request.getActive());
         }
+        return toDto(imageRepository.save(image));
+    }
+
+    // Xoay anh trong kho (sua anh bi nam ngang). degrees: 90, 180, 270 (hoac -90) theo chieu kim dong ho
+    @Transactional
+    public PuzzleImageDto rotate(Long id, int degrees) {
+        if (degrees % 90 != 0 || degrees % 360 == 0) {
+            throw new RuntimeException("Invalid rotation");
+        }
+        PuzzleImage image = imageRepository.findById(id).orElseThrow(() -> new RuntimeException("Image not found"));
+        PuzzleImageData stored = dataRepository.findById(id).orElseThrow(() -> new RuntimeException("Image not found"));
+        PuzzleImages.Processed rotated = PuzzleImages.rotate(stored.getData(), degrees / 90);
+        stored.setData(rotated.data());
+        dataRepository.save(stored);
+        image.setWidth(rotated.width());
+        image.setHeight(rotated.height());
+        image.setSizeBytes(rotated.data().length);
+        return toDto(imageRepository.save(image));
+    }
+
+    // Sua anh: xoay + cat. Co asCopy thi tao anh moi, khong dong vao anh goc va cac game dang dung no
+    @Transactional
+    public PuzzleImageDto edit(Long id, PuzzleImageEditRequest request, Long adminId) {
+        int degrees = request.getDegrees() == null ? 0 : request.getDegrees();
+        if (degrees % 90 != 0) {
+            throw new RuntimeException("Invalid rotation");
+        }
+        PuzzleImages.Crop crop = null;
+        boolean anyCrop = request.getCropX() != null || request.getCropY() != null
+            || request.getCropWidth() != null || request.getCropHeight() != null;
+        if (anyCrop) {
+            if (request.getCropX() == null || request.getCropY() == null
+                    || request.getCropWidth() == null || request.getCropHeight() == null) {
+                throw new RuntimeException("Invalid crop");
+            }
+            crop = new PuzzleImages.Crop(request.getCropX(), request.getCropY(), request.getCropWidth(),
+                request.getCropHeight());
+        }
+        if (degrees % 360 == 0 && crop == null && !Boolean.TRUE.equals(request.getAsCopy())) {
+            throw new RuntimeException("Nothing to edit");
+        }
+        PuzzleImage image = imageRepository.findById(id).orElseThrow(() -> new RuntimeException("Image not found"));
+        PuzzleImageData stored = dataRepository.findById(id).orElseThrow(() -> new RuntimeException("Image not found"));
+        PuzzleImages.Processed edited = PuzzleImages.edit(stored.getData(), degrees / 90, crop, config);
+        if (Boolean.TRUE.equals(request.getAsCopy())) {
+            String title = cleanTitle(request.getTitle() == null || request.getTitle().isBlank()
+                ? image.getTitle() + " (da sua)" : request.getTitle());
+            PuzzleImage copy = imageRepository.save(PuzzleImage.builder()
+                .title(title).contentType(STORED_CONTENT_TYPE).width(edited.width()).height(edited.height())
+                .sizeBytes(edited.data().length).active(true).createdBy(adminId).createdAt(LocalDateTime.now())
+                .build());
+            dataRepository.save(PuzzleImageData.builder().imageId(copy.getId()).data(edited.data()).build());
+            return toDto(copy);
+        }
+        stored.setData(edited.data());
+        dataRepository.save(stored);
+        image.setWidth(edited.width());
+        image.setHeight(edited.height());
+        image.setSizeBytes(edited.data().length);
         return toDto(imageRepository.save(image));
     }
 
