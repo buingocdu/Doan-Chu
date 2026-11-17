@@ -156,7 +156,8 @@ export default function PuzzlePage() {
       </h1>
       <p className="muted puzzle-intro">
         Chọn một game để chơi ngay. Kéo các mảnh ở khay phía dưới vào khung, đối chiếu với hình mẫu thu nhỏ ở góc. Mảnh sáng
-        viền khi tới đúng chỗ và tự dính khi thả. Ghép càng nhanh càng lên cao trên bảng xếp hạng.
+        viền khi tới đúng chỗ và tự dính khi thả. Bạn có thể ghép các mảnh liền kề với nhau ngay ở ngoài khay thành cụm,
+        rồi kéo cả cụm vào khung một lượt. Ghép càng nhanh càng lên cao trên bảng xếp hạng.
       </p>
 
       {load.status === 'loading' && <StatusMessage kind="loading">Đang tải danh sách game…</StatusMessage>}

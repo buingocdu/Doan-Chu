@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { Eye, EyeOff, Lightbulb, LogOut, Maximize, Minimize, Timer } from 'lucide-react';
 import JigsawPiece from './JigsawPiece';
+import { clampGroupDelta, findMerge, layoutAllPieces, membersOf, mergeGroups } from '../utils/cluster';
 import {
   buildEdges,
-  clampToWorkspace,
   computeLayout,
   createRng,
   formatDuration,
@@ -35,10 +35,11 @@ interface PuzzleBoardProps {
 }
 
 interface DragState {
-  index: number;
   pointerId: number;
   startPointer: Point;
-  startPos: Point;
+  /** Các mảnh trong cụm đang kéo (một mảnh lẻ thì chỉ có chính nó) và vị trí lúc bắt đầu kéo */
+  members: number[];
+  starts: Point[];
 }
 
 export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, onExit }: PuzzleBoardProps) {
@@ -55,14 +56,16 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     scatterPositions(layout, total, createRng(seed ^ 0x9e3779b9)),
   );
   const [placed, setPlaced] = useState<boolean[]>(() => Array<boolean>(total).fill(false));
+  // Cụm: các mảnh cùng id đã ghép với nhau ở ngoài khung và di chuyển như một khối
+  const [groups, setGroups] = useState<number[]>(() => Array.from({ length: total }, (_, i) => i));
   const [zOrder, setZOrder] = useState<number[]>(() => Array.from({ length: total }, (_, i) => i + 2));
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [filter, setFilter] = useState<PieceFilter>('all');
-  const [glowIndex, setGlowIndex] = useState<number | null>(null);
-  const [flashIndex, setFlashIndex] = useState<number | null>(null);
+  const [glowGroup, setGlowGroup] = useState<number | null>(null);
+  const [flashIds, setFlashIds] = useState<number[]>([]);
   const flashTimer = useRef<number | undefined>(undefined);
   const [elapsed, setElapsed] = useState(0);
   const [scale, setScale] = useState(1);
@@ -76,19 +79,29 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
   const finishedRef = useRef(false);
   const scaleRef = useRef(scale);
   scaleRef.current = scale;
+  const scrollBeforeFullscreen = useRef(0);
+  const wasFullscreen = useRef(false);
 
-  // Theo dõi xoay màn hình / đổi kích thước cửa sổ để chọn bố cục phù hợp
+  // Theo dõi xoay màn hình / đổi kích thước cửa sổ để chọn bố cục phù hợp. Chờ kích thước ổn định rồi mới đổi:
+  // khi vào/thoát toàn màn hình hoặc xoay máy, trình duyệt báo kích thước tạm thời sai rồi mới báo kích thước cuối.
   useEffect(() => {
-    const update = () => setMode(pickLayoutMode(window.innerWidth, window.innerHeight));
+    let timer: number | undefined;
+    const update = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setMode(pickLayoutMode(window.innerWidth, window.innerHeight)), 150);
+    };
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
+    document.addEventListener('fullscreenchange', update);
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
+      document.removeEventListener('fullscreenchange', update);
     };
   }, []);
 
-  // Co giãn cả khung (toạ độ logic giữ nguyên): theo bề rộng khả dụng; khi xoay ngang còn phải vừa chiều cao màn hình
+  // Co giãn cả khung (toạ độ logic giữ nguyên): theo bề rộng khả dụng; khi xoay ngang/toàn màn hình còn phải vừa chiều cao
   useLayoutEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -106,13 +119,18 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
       setScale(next);
     };
     update();
+    // Đo lại sau khi trình duyệt đã đổi xong kích thước (vào/thoát toàn màn hình, xoay máy)
+    const settle = [120, 350].map((ms) => window.setTimeout(update, ms));
     window.addEventListener('resize', update);
     window.addEventListener('orientationchange', update);
+    document.addEventListener('fullscreenchange', update);
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
     observer?.observe(el);
     return () => {
+      settle.forEach((t) => window.clearTimeout(t));
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
+      document.removeEventListener('fullscreenchange', update);
       observer?.disconnect();
     };
   }, [layout.width, layout.height, mode, fullscreen]);
@@ -127,11 +145,21 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
 
-  // Khoá cuộn trang phía sau; thoát ván thì thoát luôn toàn màn hình
+  // Khoá cuộn trang phía sau; thoát toàn màn hình thì trả lại đúng vị trí cuộn trước đó
   useEffect(() => {
-    if (!fullscreen) return;
-    document.body.classList.add('puzzle-fullscreen-lock');
-    return () => document.body.classList.remove('puzzle-fullscreen-lock');
+    if (fullscreen) {
+      document.body.classList.add('puzzle-fullscreen-lock');
+      wasFullscreen.current = true;
+      return () => document.body.classList.remove('puzzle-fullscreen-lock');
+    }
+    if (!wasFullscreen.current) return;
+    wasFullscreen.current = false;
+    const restore = () => {
+      if (scrollBeforeFullscreen.current > 0) window.scrollTo(0, scrollBeforeFullscreen.current);
+    };
+    restore();
+    const late = window.setTimeout(restore, 200);
+    return () => window.clearTimeout(late);
   }, [fullscreen]);
 
   useEffect(
@@ -147,6 +175,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
       if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
       return;
     }
+    scrollBeforeFullscreen.current = window.scrollY;
     setFullscreen(true);
     const el = rootRef.current;
     if (el && typeof el.requestFullscreen === 'function') {
@@ -162,6 +191,12 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     [placed, rows, cols],
   );
   const remainingInner = total - placedCount - remainingEdge;
+  // Số mảnh của cụm chứa từng mảnh (cụm từ 2 mảnh trở lên luôn hiện dù bộ lọc đang ẩn nhóm của chúng)
+  const groupSize = useMemo(() => {
+    const counts = new Map<number, number>();
+    groups.forEach((g) => counts.set(g, (counts.get(g) ?? 0) + 1));
+    return groups.map((g) => counts.get(g) ?? 1);
+  }, [groups]);
 
   // Đồng hồ chạy từ lần chạm đầu tiên vào một mảnh
   useEffect(() => {
@@ -184,60 +219,81 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
 
-  // Bản sao đồng bộ của vị trí: sự kiện con trỏ đến dồn dập, không đợi React render xong
+  // Bản sao đồng bộ: sự kiện con trỏ đến dồn dập, không đợi React render xong
   const positionsRef = useRef(positions);
+  const placedRef = useRef(placed);
+  const groupsRef = useRef(groups);
 
   const commitPositions = (next: Point[]) => {
     positionsRef.current = next;
     setPositions(next);
   };
 
-  const placedRef = useRef(placed);
-
-  const markPlaced = (index: number) => {
-    const next = placedRef.current.slice();
-    next[index] = true;
-    placedRef.current = next;
-    setPlaced(next);
-    // Loé sáng viền một lúc ngắn khi mảnh dính vào khung
-    setFlashIndex(index);
-    window.clearTimeout(flashTimer.current);
-    flashTimer.current = window.setTimeout(() => setFlashIndex(null), 600);
+  const commitGroups = (next: number[]) => {
+    groupsRef.current = next;
+    setGroups(next);
   };
 
-  // Đổi bố cục (xoay màn hình): mảnh đã đặt về đúng chỗ mới, mảnh còn lại rải lại vào khay mới
+  // Loé sáng viền một lúc ngắn khi mảnh dính vào khung hoặc vào mảnh khác
+  const flash = (ids: number[]) => {
+    setFlashIds(ids);
+    window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlashIds([]), 600);
+  };
+
+  const markPlaced = (ids: number[]) => {
+    const next = placedRef.current.slice();
+    ids.forEach((i) => {
+      next[i] = true;
+    });
+    placedRef.current = next;
+    setPlaced(next);
+    flash(ids);
+  };
+
+  // Đổi bố cục (xoay màn hình): mảnh đã đặt về đúng chỗ mới, mỗi cụm chưa đặt rải lại như một khối vào khay mới
   const layoutRef = useRef(layout);
   const remapCount = useRef(0);
   useEffect(() => {
     if (layoutRef.current === layout) return;
     layoutRef.current = layout;
     remapCount.current += 1;
-    const scattered = scatterPositions(layout, total, createRng(seed ^ (0x85ebca6b + remapCount.current)));
-    commitPositions(positionsRef.current.map((_, i) => (placedRef.current[i] ? homePosition(layout, i) : scattered[i])));
+    commitPositions(
+      layoutAllPieces(layout, groupsRef.current, placedRef.current, createRng(seed ^ (0x85ebca6b + remapCount.current))),
+    );
     dragRef.current = null;
     setDraggingIndex(null);
-    setGlowIndex(null);
+    setGlowGroup(null);
     // chỉ phản ứng khi layout đổi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout]);
+
+  // Cụm (hoặc mảnh lẻ) đang ở sát vị trí đúng trên khung, hoặc sát một mảnh kề để ghép
+  const isSnapReady = (ids: number[], pos: Point[]) =>
+    ids.some((i) => isNearHome(layout, pos[i], i)) ||
+    findMerge(layout, pos, groupsRef.current, placedRef.current, ids) !== null;
 
   const handlePointerDown = useCallback((index: number, event: PointerEvent<HTMLDivElement>) => {
     if (finishedRef.current || event.button > 0) return;
     if (startRef.current === null) startRef.current = performance.now();
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
-    zCounter.current += 1;
-    const z = zCounter.current;
+    const members = membersOf(groupsRef.current, index);
+    // Đưa cả cụm lên trên cùng, giữ nguyên thứ tự xếp chồng trong cụm
+    const base = zCounter.current;
+    zCounter.current += members.length;
     setZOrder((prev) => {
       const next = prev.slice();
-      next[index] = z;
+      members.forEach((m, k) => {
+        next[m] = base + 1 + k;
+      });
       return next;
     });
     dragRef.current = {
-      index,
       pointerId: event.pointerId,
       startPointer: { x: event.clientX, y: event.clientY },
-      startPos: positionsRef.current[index],
+      members,
+      starts: members.map((m) => positionsRef.current[m]),
     };
     setDraggingIndex(index);
   }, []);
@@ -247,18 +303,68 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
       const drag = dragRef.current;
       if (!drag || drag.pointerId !== event.pointerId) return;
       const k = scaleRef.current || 1;
+      const delta = clampGroupDelta(
+        layout,
+        drag.starts,
+        (event.clientX - drag.startPointer.x) / k,
+        (event.clientY - drag.startPointer.y) / k,
+      );
       const next = positionsRef.current.slice();
-      next[drag.index] = clampToWorkspace(layout, {
-        x: drag.startPos.x + (event.clientX - drag.startPointer.x) / k,
-        y: drag.startPos.y + (event.clientY - drag.startPointer.y) / k,
+      drag.members.forEach((m, i) => {
+        next[m] = { x: drag.starts[i].x + delta.x, y: drag.starts[i].y + delta.y };
       });
       commitPositions(next);
-      const near = isNearHome(layout, next[drag.index], drag.index);
-      setGlowIndex((prev) => (near ? drag.index : prev === drag.index ? null : prev));
+      const ready = isSnapReady(drag.members, next);
+      const id = groupsRef.current[drag.members[0]];
+      setGlowGroup((prev) => (ready ? id : prev === id ? null : prev));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [layout],
   );
+
+  // Thả cụm: sát vị trí đúng thì cả cụm dính vào khung; không thì ghép với mảnh kề đúng chỗ (có thể nhiều lần liên tiếp)
+  const settle = (members: number[]) => {
+    const pos = positionsRef.current.slice();
+    let ids = members;
+    const snapToBoard = (group: number[]): boolean => {
+      const anchor = group.find((i) => isNearHome(layout, pos[i], i));
+      if (anchor === undefined) return false;
+      const home = homePosition(layout, anchor);
+      const dx = home.x - pos[anchor].x;
+      const dy = home.y - pos[anchor].y;
+      group.forEach((i) => {
+        pos[i] = { x: pos[i].x + dx, y: pos[i].y + dy };
+      });
+      return true;
+    };
+
+    if (snapToBoard(ids)) {
+      commitPositions(pos);
+      markPlaced(ids);
+      return;
+    }
+    let nextGroups = groupsRef.current;
+    let merged = false;
+    for (let guard = 0; guard < total; guard++) {
+      const match = findMerge(layout, pos, nextGroups, placedRef.current, ids);
+      if (!match) break;
+      ids.forEach((i) => {
+        pos[i] = { x: pos[i].x + match.shift.x, y: pos[i].y + match.shift.y };
+      });
+      nextGroups = mergeGroups(nextGroups, match.target, match.moving);
+      ids = membersOf(nextGroups, match.target);
+      merged = true;
+    }
+    if (!merged) return;
+    commitGroups(nextGroups);
+    if (snapToBoard(ids)) {
+      commitPositions(pos);
+      markPlaced(ids);
+    } else {
+      commitPositions(pos);
+      flash(ids);
+    }
+  };
 
   const handlePointerUp = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
@@ -266,14 +372,9 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
       if (!drag || drag.pointerId !== event.pointerId) return;
       dragRef.current = null;
       setDraggingIndex(null);
-      setGlowIndex(null);
+      setGlowGroup(null);
       setMoves((m) => m + 1);
-      if (isNearHome(layout, positionsRef.current[drag.index], drag.index)) {
-        const next = positionsRef.current.slice();
-        next[drag.index] = homePosition(layout, drag.index);
-        commitPositions(next);
-        markPlaced(drag.index);
-      }
+      settle(drag.members);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [layout],
@@ -285,10 +386,10 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     if (!drag || drag.pointerId !== event.pointerId) return;
     dragRef.current = null;
     setDraggingIndex(null);
-    setGlowIndex(null);
+    setGlowGroup(null);
   }, []);
 
-  // Cách chơi thay thế không cần kéo thả: tự đặt một mảnh đúng chỗ (không tính vào bảng xếp hạng)
+  // Cách chơi thay thế không cần kéo thả: tự đặt một mảnh (cả cụm của nó) đúng chỗ (không tính vào bảng xếp hạng)
   const placeHint = () => {
     const unplaced = placedRef.current.map((p, i) => (p ? -1 : i)).filter((i) => i >= 0);
     if (unplaced.length === 0 || finishedRef.current) return;
@@ -297,10 +398,13 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     const remaining = filtered.length > 0 ? filtered : unplaced;
     if (startRef.current === null) startRef.current = performance.now();
     const index = remaining[Math.floor(Math.random() * remaining.length)];
+    const members = membersOf(groupsRef.current, index);
     const next = positionsRef.current.slice();
-    next[index] = homePosition(layout, index);
+    members.forEach((m) => {
+      next[m] = homePosition(layout, m);
+    });
     commitPositions(next);
-    markPlaced(index);
+    markPlaced(members);
     setHintsUsed((h) => h + 1);
   };
 
@@ -427,9 +531,9 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
                 z={placed[index] ? 1 : zOrder[index]}
                 placed={placed[index]}
                 dragging={draggingIndex === index}
-                glow={glowIndex === index}
-                flash={flashIndex === index}
-                hidden={!placed[index] && !matchesFilter(filter, index, rows, cols)}
+                glow={glowGroup !== null && groups[index] === glowGroup}
+                flash={flashIds.includes(index)}
+                hidden={!placed[index] && groupSize[index] === 1 && !matchesFilter(filter, index, rows, cols)}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PuzzleBoard from './PuzzleBoard';
 import { computeLayout, homePosition } from '../utils/jigsaw';
@@ -34,11 +34,14 @@ function renderBoard(onFinish = vi.fn(), onExit = vi.fn()) {
 }
 
 // Kéo mảnh `index` tới vị trí tuyệt đối (x, y) của ô, theo toạ độ logic (scale 1)
-function dragPieceTo(index: number, target: { x: number; y: number }) {
+function dragPieceTo(
+  index: number,
+  target: { x: number; y: number },
+  layout = computeLayout(1, 2, 2),
+) {
   const piece = screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'))[index];
   const left = parseFloat(piece.style.left);
   const top = parseFloat(piece.style.top);
-  const layout = computeLayout(1, 2, 2);
   const startX = 100;
   const startY = 100;
   fireEvent.pointerDown(piece, { pointerId: 1, clientX: startX, clientY: startY, button: 0 });
@@ -169,7 +172,7 @@ describe('PuzzleBoard', () => {
     expect(placedPiece?.classList.contains('is-filtered')).toBe(false);
   });
 
-  it('xoay ngang giữa ván: mảnh đã đặt về đúng chỗ mới, mảnh còn lại rải lại, tiến độ giữ nguyên', () => {
+  it('xoay ngang giữa ván: mảnh đã đặt về đúng chỗ mới, mảnh còn lại rải lại, tiến độ giữ nguyên', async () => {
     const originalW = window.innerWidth;
     const originalH = window.innerHeight;
     try {
@@ -187,6 +190,11 @@ describe('PuzzleBoard', () => {
       });
 
       const land = computeLayout(1, 2, 2, 'landscape');
+      // Đổi bố cục chờ ~150ms cho kích thước màn hình ổn định
+      await waitFor(() => {
+        const first = screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'))[0];
+        expect(parseFloat(first.style.left)).toBeCloseTo(homePosition(land, 0).x - land.pad);
+      });
       const pieces = screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'));
       expect(pieces).toHaveLength(4);
       expect(screen.getByText('Đã đặt 1/4')).toBeInTheDocument();
@@ -273,5 +281,168 @@ describe('PuzzleBoard', () => {
     expect(root.classList.contains('is-fullscreen')).toBe(false);
     // @ts-expect-error dọn mock
     delete HTMLElement.prototype.requestFullscreen;
+  });
+
+  describe('ghép cụm ở bên ngoài', () => {
+    const grid2 = computeLayout(1, 2, 2);
+    const pieceEls = () => screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'));
+    // Vị trí ô (không tính lề ngàm) của mảnh i theo style
+    const cell = (i: number, layout = grid2) => ({
+      x: parseFloat(pieceEls()[i].style.left) + layout.pad,
+      y: parseFloat(pieceEls()[i].style.top) + layout.pad,
+    });
+
+    it('thả mảnh kề đúng vị trí tương đối thì dính vào nhau, khít tuyệt đối', () => {
+      renderBoard();
+      dragPieceTo(0, { x: 300, y: 500 });
+      // Mảnh 1 nằm bên phải mảnh 0 một ô; thả lệch (+5, -4)
+      dragPieceTo(1, { x: 300 + grid2.cellW + 5, y: 500 - 4 });
+      const a = cell(0);
+      const b = cell(1);
+      expect(b.x - a.x).toBeCloseTo(grid2.cellW);
+      expect(b.y - a.y).toBeCloseTo(0);
+      // Chưa vào khung: vẫn là 0 mảnh đã đặt
+      expect(screen.getByText('Đã đặt 0/4')).toBeInTheDocument();
+    });
+
+    it('kéo một mảnh của cụm thì cả cụm di chuyển cùng', () => {
+      renderBoard();
+      dragPieceTo(0, { x: 300, y: 500 });
+      dragPieceTo(1, { x: 300 + grid2.cellW, y: 500 });
+      const before1 = cell(1);
+      dragPieceTo(0, { x: 340, y: 530 });
+      const a = cell(0);
+      const b = cell(1);
+      expect(a.x).toBeCloseTo(340);
+      expect(a.y).toBeCloseTo(530);
+      expect(b.x - before1.x).toBeCloseTo(40);
+      expect(b.y - before1.y).toBeCloseTo(30);
+      expect(b.x - a.x).toBeCloseTo(grid2.cellW);
+    });
+
+    it('lệch quá ngưỡng hoặc mảnh không kề nhau thì không dính', () => {
+      renderBoard();
+      dragPieceTo(0, { x: 300, y: 500 });
+      dragPieceTo(1, { x: 300 + grid2.cellW + 120, y: 500 }); // lệch xa
+      const apart = cell(1);
+      dragPieceTo(0, { x: 350, y: 520 });
+      expect(cell(1).x).toBeCloseTo(apart.x); // mảnh 1 không đi theo
+      // Mảnh 0 và 3 là hai góc đối diện (chéo), không phải mảnh kề
+      dragPieceTo(3, { x: 350 + grid2.cellW, y: 520 + grid2.cellH });
+      const c3 = cell(3);
+      dragPieceTo(0, { x: 400, y: 560 });
+      expect(cell(3).x).toBeCloseTo(c3.x);
+    });
+
+    it('thả cụm sát vị trí đúng trên khung thì cả cụm dính vào khung một lượt', () => {
+      renderBoard();
+      const h0 = homePosition(grid2, 0);
+      dragPieceTo(0, { x: 300, y: 500 });
+      dragPieceTo(1, { x: 300 + grid2.cellW, y: 500 });
+      expect(screen.getByText('Đã đặt 0/4')).toBeInTheDocument();
+      // Kéo cả cụm tới sát vị trí đúng của mảnh 0
+      dragPieceTo(0, { x: h0.x + 4, y: h0.y - 4 });
+      expect(screen.getByText('Đã đặt 2/4')).toBeInTheDocument();
+      expect(cell(0).x).toBeCloseTo(h0.x);
+      expect(cell(0).y).toBeCloseTo(h0.y);
+      const h1 = homePosition(grid2, 1);
+      expect(cell(1).x).toBeCloseTo(h1.x);
+      expect(cell(1).y).toBeCloseTo(h1.y);
+      expect(pieceEls()[0].classList.contains('is-placed')).toBe(true);
+      expect(pieceEls()[1].classList.contains('is-placed')).toBe(true);
+    });
+
+    it('ghép dây chuyền nhiều mảnh rồi đưa cả cụm vào khung thì hoàn thành ván', () => {
+      const { onFinish } = renderBoard();
+      const h0 = homePosition(grid2, 0);
+      // Giữ cả khối trong khung làm việc (cao 918): y + 2 ô < 918
+      dragPieceTo(0, { x: 300, y: 400 });
+      dragPieceTo(1, { x: 300 + grid2.cellW, y: 400 });
+      dragPieceTo(2, { x: 300, y: 400 + grid2.cellH }); // dưới mảnh 0
+      dragPieceTo(3, { x: 300 + grid2.cellW, y: 400 + grid2.cellH }); // ghép nốt vào cụm 3 mảnh
+      expect(screen.getByText('Đã đặt 0/4')).toBeInTheDocument();
+      dragPieceTo(0, { x: h0.x + 2, y: h0.y + 2 });
+      expect(screen.getByText('Đã đặt 4/4')).toBeInTheDocument();
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      // 5 lượt kéo: 4 mảnh + 1 lượt đưa cả cụm vào khung
+      expect(onFinish.mock.calls[0][0]).toMatchObject({ moves: 5, hintsUsed: 0 });
+    });
+
+    it('viền sáng khi kéo mảnh tới sát vị trí ghép với mảnh kề', () => {
+      renderBoard();
+      dragPieceTo(0, { x: 300, y: 500 });
+      const piece = pieceEls()[1];
+      const left = parseFloat(piece.style.left);
+      const top = parseFloat(piece.style.top);
+      fireEvent.pointerDown(piece, { pointerId: 1, clientX: 100, clientY: 100, button: 0 });
+      // Còn xa: chưa sáng
+      fireEvent.pointerMove(piece, {
+        pointerId: 1,
+        clientX: 100 + (300 + grid2.cellW + 200 - (left + grid2.pad)),
+        clientY: 100 + (500 - (top + grid2.pad)),
+      });
+      expect(piece.classList.contains('is-glowing')).toBe(false);
+      // Sát vị trí ghép: sáng
+      fireEvent.pointerMove(piece, {
+        pointerId: 1,
+        clientX: 100 + (300 + grid2.cellW + 3 - (left + grid2.pad)),
+        clientY: 100 + (500 + 2 - (top + grid2.pad)),
+      });
+      expect(piece.classList.contains('is-glowing')).toBe(true);
+      expect(pieceEls()[0].classList.contains('is-glowing')).toBe(false); // mảnh đứng yên không sáng, chỉ cụm đang kéo
+      fireEvent.pointerUp(piece, { pointerId: 1 });
+      expect(piece.classList.contains('is-flash')).toBe(true);
+    });
+
+    it('cụm từ 2 mảnh luôn hiện dù bộ lọc ẩn nhóm của chúng; mảnh lẻ vẫn bị lọc', () => {
+      render(<PuzzleBoard imageUrl="/x.jpg" aspect={1} rows={3} cols={3} onFinish={vi.fn()} onExit={vi.fn()} />);
+      const g3 = computeLayout(1, 3, 3);
+      // Mảnh 1 (viền) và mảnh 4 (trong, ngay dưới mảnh 1) ghép thành cụm
+      dragPieceTo(1, { x: 300, y: 500 }, g3);
+      dragPieceTo(4, { x: 300, y: 500 + g3.cellH }, g3);
+      fireEvent.click(screen.getByRole('button', { name: /Mảnh viền/ }));
+      const els = pieceEls();
+      expect(els[4].classList.contains('is-filtered')).toBe(false); // mảnh trong nhưng thuộc cụm
+      expect(els[1].classList.contains('is-filtered')).toBe(false);
+      // Mảnh trong còn lẻ duy nhất? lưới 3x3 chỉ có mảnh 4 là trong nên không còn mảnh trong lẻ nào bị ẩn
+      fireEvent.click(screen.getByRole('button', { name: /Mảnh trong/ }));
+      expect(els[0].classList.contains('is-filtered')).toBe(true); // mảnh viền lẻ bị ẩn
+      expect(els[1].classList.contains('is-filtered')).toBe(false); // nhưng mảnh viền trong cụm vẫn hiện
+    });
+
+    it('gợi ý đặt cả cụm của mảnh được chọn về đúng chỗ', () => {
+      renderBoard();
+      dragPieceTo(0, { x: 300, y: 500 });
+      dragPieceTo(1, { x: 300 + grid2.cellW, y: 500 });
+      // Chọn gợi ý nhiều lần tới khi hết mảnh: mỗi lần đặt cả cụm nên số lần ít hơn số mảnh khi có cụm
+      for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole('button', { name: /Gợi ý/ }));
+      expect(screen.getByText('Đã đặt 4/4')).toBeInTheDocument();
+    });
+
+    it('xoay ngang giữa ván: cụm giữ nguyên vị trí tương đối trong bố cục mới', async () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      try {
+        renderBoard();
+        dragPieceTo(0, { x: 300, y: 500 });
+        dragPieceTo(1, { x: 300 + grid2.cellW, y: 500 });
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: 844 });
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+        act(() => {
+          window.dispatchEvent(new Event('resize'));
+        });
+        const land = computeLayout(1, 2, 2, 'landscape');
+        await waitFor(() => {
+          expect(parseFloat(pieceEls()[0].style.left) + land.pad).toBeGreaterThanOrEqual(land.tray.x - 0.001);
+        });
+        const a = cell(0, land);
+        const b = cell(1, land);
+        expect(b.x - a.x).toBeCloseTo(land.cellW);
+        expect(b.y - a.y).toBeCloseTo(0);
+      } finally {
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: w });
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: h });
+      }
+    });
   });
 });

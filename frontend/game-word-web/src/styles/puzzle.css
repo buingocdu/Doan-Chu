@@ -162,6 +162,9 @@
 /* ----- Khu chơi ----- */
 .puzzle-play {
   display: grid;
+  /* minmax(0, 1fr): cột lưới được phép co hẹp hơn khung ghép bên trong (nếu không, thoát toàn màn hình/thu nhỏ cửa sổ
+     sẽ kẹt ở bề rộng cũ và tràn ra ngoài) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
 }
 
@@ -230,6 +233,7 @@
 
 .puzzle-stage-wrap {
   width: 100%;
+  min-width: 0;
 }
 
 .puzzle-stage {
