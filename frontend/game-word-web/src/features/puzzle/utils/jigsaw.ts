@@ -148,6 +148,22 @@ export interface Point {
   y: number;
 }
 
+/** Mảnh nằm ở viền khung (có ít nhất một cạnh phẳng), gồm cả 4 mảnh góc */
+export function isEdgePiece(index: number, rows: number, cols: number): boolean {
+  const r = Math.floor(index / cols);
+  const c = index % cols;
+  return r === 0 || r === rows - 1 || c === 0 || c === cols - 1;
+}
+
+export type PieceFilter = 'all' | 'edge' | 'inner';
+
+/** Mảnh có hiện trong khay theo bộ lọc không */
+export function matchesFilter(filter: PieceFilter, index: number, rows: number, cols: number): boolean {
+  if (filter === 'all') return true;
+  const edge = isEdgePiece(index, rows, cols);
+  return filter === 'edge' ? edge : !edge;
+}
+
 /** Vị trí đúng (góc trên-trái của ô) của mảnh thứ index, theo thứ tự hàng rồi cột */
 export function homePosition(layout: Layout, index: number): Point {
   const r = Math.floor(index / layout.cols);

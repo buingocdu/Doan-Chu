@@ -10,8 +10,10 @@ import {
   formatDuration,
   homePosition,
   isNearHome,
+  matchesFilter,
   piecePath,
   scatterPositions,
+  type PieceFilter,
   type Point,
 } from '../utils/jigsaw';
 
@@ -57,6 +59,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
   const [moves, setMoves] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
+  const [filter, setFilter] = useState<PieceFilter>('all');
   const [glowIndex, setGlowIndex] = useState<number | null>(null);
   const [flashIndex, setFlashIndex] = useState<number | null>(null);
   const flashTimer = useRef<number | undefined>(undefined);
@@ -91,6 +94,11 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
 
   const placedCount = useMemo(() => placed.filter(Boolean).length, [placed]);
   const done = placedCount === total;
+  const remainingEdge = useMemo(
+    () => placed.filter((p, i) => !p && matchesFilter('edge', i, rows, cols)).length,
+    [placed, rows, cols],
+  );
+  const remainingInner = total - placedCount - remainingEdge;
 
   // Đồng hồ chạy từ lần chạm đầu tiên vào một mảnh
   useEffect(() => {
@@ -194,8 +202,11 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
 
   // Cách chơi thay thế không cần kéo thả: tự đặt một mảnh đúng chỗ (không tính vào bảng xếp hạng)
   const placeHint = () => {
-    const remaining = placedRef.current.map((p, i) => (p ? -1 : i)).filter((i) => i >= 0);
-    if (remaining.length === 0 || finishedRef.current) return;
+    const unplaced = placedRef.current.map((p, i) => (p ? -1 : i)).filter((i) => i >= 0);
+    if (unplaced.length === 0 || finishedRef.current) return;
+    // Gợi ý chọn trong nhóm mảnh đang lọc; hết nhóm đó thì lấy bất kỳ mảnh nào còn lại
+    const filtered = unplaced.filter((i) => matchesFilter(filter, i, rows, cols));
+    const remaining = filtered.length > 0 ? filtered : unplaced;
     if (startRef.current === null) startRef.current = performance.now();
     const index = remaining[Math.floor(Math.random() * remaining.length)];
     const next = positionsRef.current.slice();
@@ -233,6 +244,39 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
           <LogOut size={16} aria-hidden="true" /> Thoát
         </button>
       </div>
+      <div className="puzzle-filter" role="group" aria-label="Lọc mảnh trong khay">
+        <span className="puzzle-filter-label">Hiện:</span>
+        <button
+          type="button"
+          className={`puzzle-chip${filter === 'all' ? ' is-active' : ''}`}
+          aria-pressed={filter === 'all'}
+          onClick={() => setFilter('all')}
+        >
+          Tất cả ({total - placedCount})
+        </button>
+        <button
+          type="button"
+          className={`puzzle-chip${filter === 'edge' ? ' is-active' : ''}`}
+          aria-pressed={filter === 'edge'}
+          onClick={() => setFilter('edge')}
+        >
+          Mảnh viền ({remainingEdge})
+        </button>
+        <button
+          type="button"
+          className={`puzzle-chip${filter === 'inner' ? ' is-active' : ''}`}
+          aria-pressed={filter === 'inner'}
+          onClick={() => setFilter('inner')}
+        >
+          Mảnh trong ({remainingInner})
+        </button>
+      </div>
+      {!done && filter !== 'all' && (filter === 'edge' ? remainingEdge : remainingInner) === 0 && (
+        <p className="puzzle-note" role="status">
+          {filter === 'edge' ? 'Đã ghép hết mảnh viền.' : 'Đã ghép hết mảnh trong.'} Chọn “Tất cả” hoặc nhóm còn lại để
+          tiếp tục.
+        </p>
+      )}
       {hintsUsed > 0 && (
         <p className="puzzle-note" role="status">
           Bạn đã dùng gợi ý nên ván này không được ghi vào bảng xếp hạng.
@@ -284,6 +328,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
               dragging={draggingIndex === index}
               glow={glowIndex === index}
               flash={flashIndex === index}
+              hidden={!placed[index] && !matchesFilter(filter, index, rows, cols)}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}

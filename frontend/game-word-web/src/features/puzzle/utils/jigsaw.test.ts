@@ -9,7 +9,9 @@ import {
   difficultyLabel,
   formatDuration,
   homePosition,
+  isEdgePiece,
   isNearHome,
+  matchesFilter,
   LOGICAL_WIDTH,
   piecePath,
   scatterPositions,
@@ -171,5 +173,26 @@ describe('bố cục gọn cho điện thoại', () => {
     const compact = computeLayout(1.5, 3, 3, true);
     const wide = computeLayout(1.5, 3, 3, false);
     expect(compact.board.w / compact.width).toBeGreaterThan((wide.board.w / wide.width) * 1.1);
+  });
+});
+
+describe('bộ lọc mảnh viền', () => {
+  it('lưới 4x5: 14 mảnh viền (gồm 4 góc), 6 mảnh trong', () => {
+    const rows = 4;
+    const cols = 5;
+    const edge = Array.from({ length: rows * cols }, (_, i) => i).filter((i) => isEdgePiece(i, rows, cols));
+    expect(edge).toHaveLength(14);
+    expect(isEdgePiece(0, rows, cols)).toBe(true);
+    expect(isEdgePiece(cols * rows - 1, rows, cols)).toBe(true);
+    expect(isEdgePiece(cols + 1, rows, cols)).toBe(false);
+  });
+
+  it('lưới 2xN không có mảnh trong; matchesFilter tách đúng hai nhóm', () => {
+    expect(Array.from({ length: 6 }, (_, i) => isEdgePiece(i, 2, 3)).every(Boolean)).toBe(true);
+    expect(matchesFilter('all', 5, 3, 3)).toBe(true);
+    expect(matchesFilter('edge', 4, 3, 3)).toBe(false);
+    expect(matchesFilter('inner', 4, 3, 3)).toBe(true);
+    expect(matchesFilter('edge', 0, 3, 3)).toBe(true);
+    expect(matchesFilter('inner', 0, 3, 3)).toBe(false);
   });
 });

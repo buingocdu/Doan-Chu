@@ -136,4 +136,36 @@ describe('PuzzleBoard', () => {
     expect(piece.classList.contains('is-placed')).toBe(true);
     expect(piece.classList.contains('is-flash')).toBe(true);
   });
+
+  it('bộ lọc mảnh viền ẩn mảnh trong khỏi khay và bỏ lọc thì hiện lại', () => {
+    render(<PuzzleBoard imageUrl="/x.jpg" aspect={1} rows={3} cols={3} onFinish={vi.fn()} onExit={vi.fn()} />);
+    const pieces = () => screen.getAllByRole('img').filter((el) => el.classList.contains('jigsaw-piece'));
+    expect(pieces().filter((p) => p.classList.contains('is-filtered'))).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Mảnh viền (8)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mảnh trong (1)' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mảnh viền (8)' }));
+    const hidden = pieces().filter((p) => p.classList.contains('is-filtered'));
+    expect(hidden).toHaveLength(1); // chỉ mảnh giữa (hàng 2, cột 2) bị ẩn
+    expect(hidden[0]).toHaveAttribute('aria-label', expect.stringContaining('hàng 2, cột 2'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mảnh trong (1)' }));
+    expect(pieces().filter((p) => p.classList.contains('is-filtered'))).toHaveLength(8);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Tất cả/ }));
+    expect(pieces().filter((p) => p.classList.contains('is-filtered'))).toHaveLength(0);
+  });
+
+  it('mảnh đã đặt luôn hiện dù lọc nhóm khác, và gợi ý lấy mảnh trong nhóm đang lọc', () => {
+    render(<PuzzleBoard imageUrl="/x.jpg" aspect={1} rows={3} cols={3} onFinish={vi.fn()} onExit={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mảnh trong (1)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Gợi ý/ }));
+    // Gợi ý đặt đúng mảnh giữa, số mảnh trong còn 0 và có thông báo
+    expect(screen.getByText('Đã đặt 1/9')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mảnh trong (0)' })).toBeInTheDocument();
+    expect(screen.getAllByRole('status').some((el) => el.textContent?.includes('Đã ghép hết mảnh trong'))).toBe(true);
+    const placedPiece = screen.getAllByRole('img').find((el) => el.classList.contains('is-placed'));
+    expect(placedPiece).toBeDefined();
+    expect(placedPiece?.classList.contains('is-filtered')).toBe(false);
+  });
 });

@@ -176,6 +176,47 @@
   flex: 1;
 }
 
+.puzzle-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.puzzle-filter-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.puzzle-chip {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.puzzle-chip.is-active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--primary);
+}
+
+.puzzle-chip:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Mảnh bị bộ lọc ẩn khỏi khay (vẫn giữ nguyên vị trí để hiện lại khi bỏ lọc) */
+.jigsaw-piece.is-filtered {
+  display: none;
+}
+
 .puzzle-stat {
   display: inline-flex;
   align-items: center;
