@@ -24,6 +24,7 @@ const image = (id: number, title: string): PuzzleImage => ({
   height: 600,
   sizeBytes: 1000 + id,
   active: true,
+  version: 0,
   createdAt: '2026-11-17T10:00:00',
 });
 
@@ -33,6 +34,7 @@ const game = (id: number, imageId: number): PuzzleGame => ({
   imageId,
   width: 900,
   height: 600,
+  imageVersion: 1000 + imageId,
   rows: 3,
   cols: 3,
   active: true,

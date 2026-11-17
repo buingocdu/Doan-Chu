@@ -275,6 +275,33 @@ class PuzzleFlowIntegrationTest {
     }
 
     @Test
+    void gameImageVersionChangesWhenTheImageIsEdited() throws Exception {
+        String admin = register(true);
+        long imageId = uploadImage(admin, "Phien ban");
+        long gameId = createGame(admin, imageId, 3, 3);
+        java.util.function.Supplier<Integer> version = () -> {
+            try {
+                JsonNode games = JSON.readTree(mvc.perform(get("/api/puzzle/games")).andReturn().getResponse()
+                    .getContentAsString());
+                for (JsonNode g : games) {
+                    if (g.get("id").asLong() == gameId) {
+                        return g.get("imageVersion").asInt();
+                    }
+                }
+                throw new IllegalStateException("game not found");
+            } catch (Exception ex) {
+                throw new IllegalStateException(ex);
+            }
+        };
+        int before = version.get();
+        assertEquals(0, before);
+        mvc.perform(post("/api/admin/puzzle/images/" + imageId + "/rotate").header("Authorization", admin)
+            .contentType("application/json").content("{\"degrees\":90}")).andExpect(status().isOk());
+        // Dia chi anh trong danh sach game doi theo nen trinh duyet khong dung ban cu trong cache
+        assertEquals(1, version.get().intValue());
+    }
+
+    @Test
     void imageFileUsesEtagAndAnswers304WhenUnchangedThenNewBytesAfterRotate() throws Exception {
         String admin = register(true);
         long id = uploadImage(admin, "Cache");

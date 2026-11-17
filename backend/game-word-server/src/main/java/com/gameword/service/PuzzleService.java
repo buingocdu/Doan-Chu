@@ -122,6 +122,7 @@ public class PuzzleService {
         image.setWidth(rotated.width());
         image.setHeight(rotated.height());
         image.setSizeBytes(rotated.data().length);
+        image.setVersion(image.getVersion() + 1);
         return toDto(imageRepository.save(image));
     }
 
@@ -164,6 +165,7 @@ public class PuzzleService {
         image.setWidth(edited.width());
         image.setHeight(edited.height());
         image.setSizeBytes(edited.data().length);
+        image.setVersion(image.getVersion() + 1);
         return toDto(imageRepository.save(image));
     }
 
@@ -294,6 +296,7 @@ public class PuzzleService {
     private static PuzzleGameDto toGameDto(PuzzleGame g, PuzzleImage image) {
         return PuzzleGameDto.builder().id(g.getId()).title(g.getTitle()).imageId(g.getImageId())
             .width(image == null ? null : image.getWidth()).height(image == null ? null : image.getHeight())
+            .imageVersion(image == null ? null : image.getVersion())
             .rows(g.getRows()).cols(g.getCols()).active(g.getActive()).createdAt(g.getCreatedAt()).build();
     }
 
@@ -304,7 +307,8 @@ public class PuzzleService {
 
     static PuzzleImageDto toDto(PuzzleImage i) {
         return PuzzleImageDto.builder().id(i.getId()).title(i.getTitle()).width(i.getWidth()).height(i.getHeight())
-            .sizeBytes(i.getSizeBytes()).active(i.getActive()).createdAt(i.getCreatedAt()).build();
+            .sizeBytes(i.getSizeBytes()).active(i.getActive()).version(i.getVersion())
+            .createdAt(i.getCreatedAt()).build();
     }
 
     public record PuzzleFile(byte[] data, String contentType) {

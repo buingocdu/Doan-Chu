@@ -93,7 +93,7 @@ export default function PuzzlePage() {
         </h1>
         <PuzzleBoard
           key={gameKey}
-          imageUrl={puzzleImageUrl(game.imageId)}
+          imageUrl={puzzleImageUrl(game.imageId, game.imageVersion)}
           aspect={game.width && game.height ? game.width / game.height : 1}
           rows={game.rows}
           cols={game.cols}
@@ -173,7 +173,7 @@ export default function PuzzlePage() {
           {load.games.map((g) => (
             <li key={g.id} className="card puzzle-game-card">
               <button type="button" className="puzzle-game-play" onClick={() => play(g)}>
-                <img src={puzzleImageUrl(g.imageId)} alt="" loading="lazy" draggable={false} />
+                <img src={puzzleImageUrl(g.imageId, g.imageVersion)} alt="" loading="lazy" draggable={false} />
                 <span className="puzzle-game-title">{g.title}</span>
                 <span className="puzzle-game-meta">
                   <span className="puzzle-badge">{difficultyLabel(g.rows, g.cols)}</span>

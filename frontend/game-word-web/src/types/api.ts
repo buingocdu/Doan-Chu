@@ -246,6 +246,8 @@ export interface PuzzleImage {
   height: number;
   sizeBytes: number;
   active: boolean;
+  /** Tăng mỗi khi ảnh được xoay/cắt; dùng làm ?v= để bỏ cache cũ */
+  version: number;
   createdAt: string;
 }
 
@@ -257,6 +259,8 @@ export interface PuzzleGame {
   /** Kích thước ảnh, dùng để dựng khung đúng tỉ lệ */
   width: number | null;
   height: number | null;
+  /** Đổi khi ảnh được xoay/cắt; gắn vào địa chỉ ảnh để không dùng bản cũ trong cache */
+  imageVersion: number | null;
   rows: number;
   cols: number;
   active: boolean;

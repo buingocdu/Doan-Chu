@@ -16,6 +16,7 @@ const photo = (over: Partial<PuzzleImage> = {}): PuzzleImage => ({
   height: 600,
   sizeBytes: 5000,
   active: true,
+  version: 0,
   createdAt: '2026-11-17T10:00:00',
   ...over,
 });

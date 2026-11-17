@@ -7,7 +7,7 @@ import type { PuzzleImage } from '../../../types/api';
  * xoay/cắt nên trình duyệt không dùng bản cũ); ảnh đang ẩn không có địa chỉ công khai nên tải bằng token quản trị.
  */
 export function useAdminImageSrc(image: PuzzleImage): { src: string | null; failed: boolean; markFailed: () => void } {
-  const publicUrl = `${puzzleImageUrl(image.id)}?v=${image.sizeBytes}`;
+  const publicUrl = puzzleImageUrl(image.id, image.version);
   const [src, setSrc] = useState<string | null>(image.active ? publicUrl : null);
   const [failed, setFailed] = useState(false);
 
@@ -33,7 +33,7 @@ export function useAdminImageSrc(image: PuzzleImage): { src: string | null; fail
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [image.id, image.active, image.sizeBytes, publicUrl]);
+  }, [image.id, image.active, image.version, publicUrl]);
 
   return { src, failed, markFailed: () => setFailed(true) };
 }

@@ -39,6 +39,11 @@ public class PuzzleImage {
     @Column(nullable = false)
     private Boolean active;
 
+    // Tang moi khi noi dung anh doi (xoay/cat); dung lam ?v= de bo cache cua trinh duyet
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer version = 0;
+
     @Column(name = "created_by")
     private Long createdBy;
 

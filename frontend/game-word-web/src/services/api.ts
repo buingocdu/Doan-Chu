@@ -163,7 +163,8 @@ export const sendDirectMessage = (friendId: number, content: string) =>
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 /** Địa chỉ ảnh công khai (dùng cho thẻ img, không cần token) */
-export const puzzleImageUrl = (id: number) => `${API_BASE}/puzzle/images/${id}/file`;
+export const puzzleImageUrl = (id: number, version?: number | null) =>
+  `${API_BASE}/puzzle/images/${id}/file${version != null ? `?v=${version}` : ''}`;
 
 export const getPuzzleGames = () => API.get<PuzzleGame[]>('/puzzle/games').then((r) => r.data);
 

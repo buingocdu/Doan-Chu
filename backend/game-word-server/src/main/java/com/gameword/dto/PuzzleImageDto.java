@@ -18,5 +18,6 @@ public class PuzzleImageDto {
     private Integer height;
     private Integer sizeBytes;
     private Boolean active;
+    private Integer version;
     private LocalDateTime createdAt;
 }
