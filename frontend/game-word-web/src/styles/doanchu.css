@@ -1,105 +1,47 @@
-/* ===== Giao diện nổi bật cho game Đoán Chữ: phong cách "Đêm chàm – vàng" (nền tím chàm đậm, điểm nhấn vàng, ô chữ nền than viền vàng) =====
+/* ===== Giao diện nổi bật cho game Đoán Chữ: nền trang giữ nguyên (trắng như ban đầu), các "box" phối chàm – vàng =====
    Chỉ đổi cách trình bày, mọi thành phần và chức năng giữ nguyên. Chỉ áp dụng khi <body> có class theme-doanchu
-   (useDoanChuTheme bật khi trang Đoán chữ mở). Đổi bộ biến màu của body nên thanh điều hướng và các nút dùng chung
-   tự đổi theo mà không cần sửa từng thành phần. */
+   (useDoanChuTheme bật khi trang Đoán chữ mở). Không đụng tới nền trang và thanh điều hướng: bảng màu tối chỉ áp dụng
+   bên trong khung chơi, còn khung Luật chơi là khối sáng viền chàm. Đổi các biến --dc-* là đổi tông cả bộ box. */
 
 body.theme-doanchu {
-  color-scheme: dark;
-  /* Bảng màu riêng của phong cách: đổi các biến --dc-* là đổi cả tông giao diện */
-  --dc-bg-top: #3b2e92;
-  --dc-bg-mid: #201858;
-  --dc-bg-bottom: #120d36;
-  --dc-glow: rgb(150 130 255 / 28%);
+  --dc-stage-top: #3b2ea0;
+  --dc-stage-bottom: #1b1356;
+  --dc-card-top: #4a3bbd;
+  --dc-card-bottom: #2d227c;
   --dc-ink: #120b33;
-  --dc-card-top: #2e2373;
-  --dc-card-bottom: #1a1349;
-  --bg: #201858;
-  --surface: #2a2070;
-  --surface-2: #1c1552;
-  --border: rgb(255 255 255 / 18%);
+  --dc-accent: #3b2e92;
+  --dc-accent-soft: #e6e1ff;
+  --dc-gold: #f6b21b;
+  --dc-on-gold: #1d1240;
+}
+
+/* ----- Khung chơi: khối chàm đậm viền vàng nổi trên nền trắng ----- */
+body.theme-doanchu .game {
+  /* Bảng màu tối chỉ trong khung chơi: chữ, nút, ô nhập, thông báo bên trong tự đổi theo */
   --text: #fff;
   --text-muted: #d4cffa;
-  --primary: #f6b21b;
-  --primary-hover: #ffc83d;
-  --primary-text: #1d1240;
+  --border: rgb(255 255 255 / 18%);
+  --surface: #2a2070;
+  --surface-2: #1c1552;
   --danger: #ffd9d9;
   --danger-bg: rgb(0 0 0 / 30%);
   --focus: #ffe08a;
-  --tile-empty: #26262a;
   --tile-border: #d4a017;
   --tile-filled-border: #ffd24a;
-  --key-bg: #2f2f34;
-  --key-text: #fff;
-  --green: #22c55e;
-  --yellow: #f59e0b;
-  --blue: #3b82f6;
-  --gray: #2b2b2e;
-  --on-color: #fff;
-  --shadow: 0 2px 6px rgb(0 0 0 / 25%), 0 10px 28px rgb(0 0 0 / 28%);
-  /* Nền chàm có vầng sáng ở giữa phía trên để bớt phẳng */
-  background:
-    radial-gradient(60% 40% at 50% 12%, var(--dc-glow) 0%, transparent 70%),
-    radial-gradient(120% 80% at 50% -10%, var(--dc-bg-top) 0%, var(--dc-bg-mid) 48%, var(--dc-bg-bottom) 100%),
-    var(--dc-bg-mid);
-  background-attachment: fixed;
-}
-
-/* Chấm hạt mờ phủ nền */
-body.theme-doanchu::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(rgb(255 255 255 / 6%) 1px, transparent 1px);
-  background-size: 22px 22px;
-}
-
-/* Liên kết trong nội dung màu vàng; thanh điều hướng giữ màu riêng */
-body.theme-doanchu .main a {
-  color: #ffd24a;
-}
-
-body.theme-doanchu .btn-primary {
-  border: 1px solid #ffe08a;
-  background: linear-gradient(180deg, #ffd24a 0%, #f0a30f 100%);
-  color: var(--primary-text);
-  font-weight: 800;
-  box-shadow:
-    0 3px 0 #a86a00,
-    0 6px 16px rgb(246 178 27 / 30%);
-}
-
-body.theme-doanchu .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ffe07a 0%, #f7b323 100%);
-}
-
-body.theme-doanchu .btn-primary:active:not(:disabled) {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #a86a00;
-}
-
-body.theme-doanchu .btn-ghost {
-  border-color: rgb(255 255 255 / 16%);
-  background: rgb(0 0 0 / 28%);
-  color: #fff;
-}
-
-body.theme-doanchu .btn-ghost:hover:not(:disabled) {
-  background: rgb(0 0 0 / 42%);
-}
-
-/* ----- Khung chơi: "sân khấu" có viền vàng và vầng sáng ----- */
-body.theme-doanchu .game {
+  --primary: var(--dc-gold);
+  --primary-text: var(--dc-on-gold);
+  color: var(--text);
   position: relative;
-  padding: 1.2rem 1.1rem 1.4rem;
-  border: 1px solid rgb(255 214 90 / 38%);
+  padding: 1.25rem 1.1rem 1.45rem;
+  border: 1px solid rgb(255 214 90 / 55%);
   border-radius: 26px;
-  background: linear-gradient(180deg, rgb(0 0 0 / 28%) 0%, rgb(0 0 0 / 14%) 100%);
+  background:
+    radial-gradient(80% 45% at 50% 0%, rgb(190 175 255 / 26%) 0%, transparent 70%),
+    linear-gradient(180deg, var(--dc-stage-top) 0%, var(--dc-stage-bottom) 100%);
   box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 30%),
-    0 20px 44px rgb(0 0 0 / 36%),
-    0 0 70px rgb(255 160 40 / 14%);
+    inset 0 0 0 1px rgb(0 0 0 / 25%),
+    0 22px 46px rgb(46 35 115 / 38%),
+    0 6px 14px rgb(29 20 86 / 25%);
 }
 
 body.theme-doanchu .game::before {
@@ -114,11 +56,44 @@ body.theme-doanchu .game::before {
   box-shadow: 0 0 14px rgb(255 210 74 / 70%);
 }
 
+body.theme-doanchu .game a {
+  color: #ffd24a;
+}
+
+body.theme-doanchu .game .btn-primary {
+  border: 1px solid #ffe08a;
+  background: linear-gradient(180deg, #ffd24a 0%, #f0a30f 100%);
+  color: var(--dc-on-gold);
+  font-weight: 800;
+  box-shadow:
+    0 3px 0 #a86a00,
+    0 6px 16px rgb(246 178 27 / 30%);
+}
+
+body.theme-doanchu .game .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffe07a 0%, #f7b323 100%);
+}
+
+body.theme-doanchu .game .btn-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #a86a00;
+}
+
+body.theme-doanchu .game .btn-ghost {
+  border-color: rgb(255 255 255 / 16%);
+  background: rgb(0 0 0 / 28%);
+  color: #fff;
+}
+
+body.theme-doanchu .game .btn-ghost:hover:not(:disabled) {
+  background: rgb(0 0 0 / 42%);
+}
+
 /* ----- Phần đầu: tiêu đề lấp lánh, nút Từ khác vàng ----- */
 body.theme-doanchu .game-head {
   align-items: center;
   padding-bottom: 0.35rem;
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
 }
 
 .dc-title {
@@ -148,14 +123,10 @@ body.theme-doanchu .game-head {
   }
 }
 
-body.theme-doanchu .game-head .muted {
-  color: var(--text-muted);
-}
-
 body.theme-doanchu .game-head .btn-ghost:not(:disabled) {
   border-color: #ffe08a;
   background: linear-gradient(180deg, #ffd24a 0%, #f0a30f 100%);
-  color: var(--primary-text);
+  color: var(--dc-on-gold);
   font-weight: 800;
   box-shadow: 0 3px 0 #a86a00;
 }
@@ -180,7 +151,7 @@ body.theme-doanchu .board {
 }
 
 body.theme-doanchu .tile {
-  border: 1.5px solid var(--tile-border);
+  border: 1.5px solid #d4a017;
   border-radius: 10px;
   background: linear-gradient(180deg, #38383e 0%, #1c1c20 100%);
   color: #fff;
@@ -192,7 +163,7 @@ body.theme-doanchu .tile {
 }
 
 body.theme-doanchu .tile.filled {
-  border-color: var(--tile-filled-border);
+  border-color: #ffd24a;
   box-shadow:
     0 0 0 1px rgb(255 210 74 / 45%),
     0 0 16px rgb(246 178 27 / 45%),
@@ -261,7 +232,7 @@ body.theme-doanchu .tile-mini {
 }
 
 body.theme-doanchu .tile-outline {
-  border: 1.5px solid var(--tile-border);
+  border: 1.5px solid #d4a017;
   background: linear-gradient(180deg, #38383e 0%, #1c1c20 100%);
   color: #fff;
 }
@@ -279,12 +250,12 @@ body.theme-doanchu .guess-form {
   border-radius: 18px;
   background: rgb(0 0 0 / 26%);
   box-shadow:
-    inset 0 0 0 1px rgb(255 214 90 / 18%),
+    inset 0 0 0 1px rgb(255 214 90 / 22%),
     0 8px 20px rgb(0 0 0 / 22%);
 }
 
 body.theme-doanchu .guess-input {
-  border: 2px solid var(--tile-border);
+  border: 2px solid #d4a017;
   border-radius: 12px;
   background: rgb(0 0 0 / 42%);
   color: #fff;
@@ -315,17 +286,17 @@ body.theme-doanchu .key {
 
 body.theme-doanchu .key-wide {
   background: linear-gradient(180deg, #ffd24a 0%, #f0a30f 100%);
-  color: var(--primary-text);
+  color: var(--dc-on-gold);
   box-shadow: 0 3px 0 #a86a00;
 }
 
-/* ----- Kết quả: bật lên và phát sáng khi thắng ----- */
+/* ----- Kết quả: khối sáng hơn khung chơi, bật lên và phát sáng khi thắng ----- */
 body.theme-doanchu .result {
   max-width: 560px;
   border: 2px solid #d4a017;
   background: linear-gradient(180deg, var(--dc-card-top) 0%, var(--dc-card-bottom) 100%);
   color: #fff;
-  box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 40%);
   animation: dc-pop 0.45s ease-out both;
 }
 
@@ -372,36 +343,47 @@ body.theme-doanchu .definition-word {
     box-shadow:
       0 0 0 3px rgb(255 210 74 / 28%),
       0 0 30px rgb(255 190 40 / 45%),
-      0 14px 34px rgb(0 0 0 / 45%);
+      0 14px 34px rgb(0 0 0 / 40%);
   }
   50% {
     box-shadow:
       0 0 0 3px rgb(255 210 74 / 12%),
       0 0 14px rgb(255 190 40 / 22%),
-      0 14px 34px rgb(0 0 0 / 45%);
+      0 14px 34px rgb(0 0 0 / 40%);
   }
 }
 
-/* ----- Luật chơi (vẫn là khung bên phải, thu gọn được trên điện thoại) ----- */
+/* ----- Luật chơi: khối sáng viền chàm, vạch vàng bên trái, tiêu đề chàm đậm ----- */
 body.theme-doanchu .rules.card {
-  border: 1px solid rgb(255 214 90 / 28%);
+  --tile-border: #d4a017;
+  border: 1px solid color-mix(in srgb, var(--dc-accent) 35%, transparent);
+  border-left: 5px solid var(--dc-gold);
   border-radius: 22px;
-  background: linear-gradient(180deg, rgb(0 0 0 / 30%) 0%, rgb(0 0 0 / 16%) 100%);
-  box-shadow: 0 14px 32px rgb(0 0 0 / 28%);
+  background: linear-gradient(180deg, var(--dc-accent-soft) 0%, var(--surface) 38%);
+  box-shadow:
+    0 16px 34px color-mix(in srgb, var(--dc-accent) 22%, transparent),
+    0 3px 8px color-mix(in srgb, var(--dc-accent) 14%, transparent);
 }
 
 body.theme-doanchu .rules h2 {
-  color: #ffd24a;
+  color: var(--dc-accent);
+  font-weight: 800;
 }
 
-body.theme-doanchu .rules-list strong {
-  color: #fff;
+@media (prefers-color-scheme: dark) {
+  body.theme-doanchu .rules.card {
+    background: linear-gradient(180deg, #2d2570 0%, var(--surface) 38%);
+  }
+
+  body.theme-doanchu .rules h2 {
+    color: #cfc7ff;
+  }
 }
 
 /* ----- Điện thoại ----- */
 @media (max-width: 480px) {
   body.theme-doanchu .game {
-    padding: 0.9rem 0.55rem 1.1rem;
+    padding: 0.95rem 0.55rem 1.1rem;
     border-radius: 20px;
   }
 }
