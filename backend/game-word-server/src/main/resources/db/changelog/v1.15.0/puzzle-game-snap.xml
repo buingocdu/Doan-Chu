@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+
+    <!-- Do tu dong khop vao khung cua tung game (phan tram canh ngan cua o). 8 la muc dang chay truoc day nen
+         game cu giu nguyen cam giac choi -->
+    <changeSet id="33" author="claude">
+        <addColumn tableName="puzzle_games">
+            <column name="snap_percent" type="INT" defaultValueNumeric="8">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

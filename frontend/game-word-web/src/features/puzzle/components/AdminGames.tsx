@@ -9,8 +9,10 @@ import {
 } from '../../../services/api';
 import StatusMessage from '../../../components/common/StatusMessage';
 import AdminThumb from './AdminThumb';
+import GameSnapEditor from './GameSnapEditor';
+import SnapSlider from './SnapSlider';
 import type { PuzzleGame, PuzzleImage } from '../../../types/api';
-import { clampGrid, DIFFICULTIES, difficultyLabel, MAX_GRID, MIN_GRID } from '../utils/jigsaw';
+import { clampGrid, DEFAULT_SNAP_PERCENT, DIFFICULTIES, difficultyLabel, MAX_GRID, MIN_GRID } from '../utils/jigsaw';
 
 interface AdminGamesProps {
   /** Ảnh trong kho, dùng để chọn ảnh cho game */
@@ -32,6 +34,7 @@ export default function AdminGames({ images, imagesLoading, preselectImageId, on
   const [title, setTitle] = useState('');
   const [rows, setRows] = useState(4);
   const [cols, setCols] = useState(4);
+  const [snapPercent, setSnapPercent] = useState(DEFAULT_SNAP_PERCENT);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -66,7 +69,13 @@ export default function AdminGames({ images, imagesLoading, preselectImageId, on
     setSaving(true);
     setMessage(null);
     try {
-      const game = await createPuzzleGame({ imageId: selected.id, title: title.trim() || undefined, rows, cols });
+      const game = await createPuzzleGame({
+        imageId: selected.id,
+        title: title.trim() || undefined,
+        rows,
+        cols,
+        snapPercent,
+      });
       setTitle('');
       await reload();
       setMessage({ kind: 'success', text: `Đã lưu game “${game.title}” (${game.rows}×${game.cols}). Người chơi thấy ngay trong mục Ghép hình.` });
@@ -183,7 +192,10 @@ export default function AdminGames({ images, imagesLoading, preselectImageId, on
               {difficultyLabel(clampGrid(rows), clampGrid(cols))}
             </p>
 
-            <p className="admin-step">3. Đặt tên và lưu</p>
+            <p className="admin-step">3. Độ tự động khớp</p>
+            <SnapSlider id="game-snap" value={snapPercent} onChange={setSnapPercent} />
+
+            <p className="admin-step">4. Đặt tên và lưu</p>
             <div className="field">
               <label htmlFor="game-title">Tên game (để trống thì lấy tên ảnh)</label>
               <input
@@ -279,6 +291,10 @@ export default function AdminGames({ images, imagesLoading, preselectImageId, on
                     {game.rows}×{game.cols} · {game.rows * game.cols} mảnh · {difficultyLabel(game.rows, game.cols)}
                     {game.active ? '' : ' · đang ẩn'}
                   </span>
+                  <GameSnapEditor
+                    game={game}
+                    onSave={(percent) => run(() => updatePuzzleGame(game.id, { snapPercent: percent }), 'Đã cập nhật độ tự động khớp.')}
+                  />
                 </div>
                 <div className="admin-item-actions">
                   <button

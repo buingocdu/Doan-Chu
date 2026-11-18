@@ -9,4 +9,6 @@ public class PuzzleGameRequest {
     private Long imageId;
     private Integer rows;
     private Integer cols;
+    // Khong gui thi dung mac dinh (puzzle.default-snap-percent)
+    private Integer snapPercent;
 }

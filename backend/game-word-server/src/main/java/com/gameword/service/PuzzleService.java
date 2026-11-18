@@ -201,7 +201,7 @@ public class PuzzleService {
             ? image.getTitle() : request.getTitle());
         PuzzleGame game = gameRepository.save(PuzzleGame.builder()
             .title(title).imageId(image.getId()).rows(request.getRows()).cols(request.getCols())
-            .active(true).createdBy(adminId).createdAt(LocalDateTime.now()).build());
+            .snapPercent(resolveSnap(request.getSnapPercent())).active(true).createdBy(adminId).createdAt(LocalDateTime.now()).build());
         return toGameDto(game, image);
     }
 
@@ -217,6 +217,9 @@ public class PuzzleService {
         }
         if (request.getActive() != null) {
             game.setActive(request.getActive());
+        }
+        if (request.getSnapPercent() != null) {
+            game.setSnapPercent(resolveSnap(request.getSnapPercent()));
         }
         game = gameRepository.save(game);
         return toGameDto(game, imageRepository.findById(game.getImageId()).orElse(null));
@@ -278,6 +281,17 @@ public class PuzzleService {
         return game;
     }
 
+    // null = mac dinh; ngoai khoang cho phep thi 400
+    int resolveSnap(Integer percent) {
+        if (percent == null) {
+            return config.getDefaultSnapPercent();
+        }
+        if (percent < config.getMinSnapPercent() || percent > config.getMaxSnapPercent()) {
+            throw new RuntimeException("Invalid snap");
+        }
+        return percent;
+    }
+
     void validateGrid(Integer rows, Integer cols) {
         if (rows == null || cols == null
                 || rows < config.getMinGrid() || rows > config.getMaxGrid()
@@ -297,7 +311,7 @@ public class PuzzleService {
         return PuzzleGameDto.builder().id(g.getId()).title(g.getTitle()).imageId(g.getImageId())
             .width(image == null ? null : image.getWidth()).height(image == null ? null : image.getHeight())
             .imageVersion(image == null ? null : image.getVersion())
-            .rows(g.getRows()).cols(g.getCols()).active(g.getActive()).createdAt(g.getCreatedAt()).build();
+            .rows(g.getRows()).cols(g.getCols()).snapPercent(g.getSnapPercent()).active(g.getActive()).createdAt(g.getCreatedAt()).build();
     }
 
     private static String cleanTitle(String title) {

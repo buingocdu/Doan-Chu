@@ -32,6 +32,10 @@ public class PuzzleGame {
     @Column(name = "piece_cols", nullable = false)
     private Integer cols;
 
+    // Do tu dong khop vao khung/vao manh ke, tinh bang phan tram canh ngan cua o (2-20, mac dinh 8)
+    @Column(name = "snap_percent", nullable = false)
+    private Integer snapPercent;
+
     // false = admin an game khoi nguoi choi
     @Column(nullable = false)
     private Boolean active;

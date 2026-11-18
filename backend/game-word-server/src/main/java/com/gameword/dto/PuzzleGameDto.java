@@ -22,6 +22,7 @@ public class PuzzleGameDto {
     private Integer imageVersion;
     private Integer rows;
     private Integer cols;
+    private Integer snapPercent;
     private Boolean active;
     private LocalDateTime createdAt;
 }

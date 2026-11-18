@@ -165,19 +165,31 @@ describe('difficultyLabel', () => {
 });
 
 describe('bố cục gọn cho điện thoại', () => {
-  it('khung chiếm gần hết bề ngang, hình mẫu ở lề phải không đè khung, mọi mảnh rải trong khay', () => {
+  it('hình mẫu ở hàng riêng phía trên khung, không đè khung và không tràn; mọi mảnh rải trong khay', () => {
     for (const aspect of [0.5, 1, 1.5, 3]) {
       const layout = computeLayout(aspect, 4, 4, true);
       expect(layout.width).toBe(COMPACT_LOGICAL_WIDTH);
-      expect(layout.board.x + layout.board.w).toBeLessThanOrEqual(layout.thumb.x);
+      // Hình mẫu nằm trên khung (cả phần chú thích bên dưới hình), không còn chiếm lề phải của khung
+      expect(layout.thumb.y + layout.thumb.h + 20).toBeLessThanOrEqual(layout.board.y);
       expect(layout.thumb.x + layout.thumb.w).toBeLessThanOrEqual(layout.width);
+      expect(layout.board.x).toBeGreaterThanOrEqual(0);
+      expect(layout.board.x + layout.board.w).toBeLessThanOrEqual(layout.width);
+      // Khay nằm dưới khung và mọi mảnh rải trong bề ngang
+      expect(layout.tray.y).toBeGreaterThanOrEqual(layout.board.y + layout.board.h);
       const points = scatterPositions(layout, 16, createRng(3));
       for (const p of points) expect(p.x + layout.cellW).toBeLessThanOrEqual(layout.width);
     }
-    // Ảnh ngang: khung rộng hơn nhiều so với bố cục rộng sau khi co theo màn hình 390px
+  });
+
+  it('ảnh ngang: khung chiếm gần hết bề ngang màn hình (trên 95%), rộng hơn hẳn so với trước và so với máy tính', () => {
+    for (const aspect of [1, 1.5, 3]) {
+      const compact = computeLayout(aspect, 3, 3, true);
+      expect(compact.board.w / compact.width).toBeGreaterThan(0.95);
+      expect(compact.board.x).toBeCloseTo((compact.width - compact.board.w) / 2); // căn giữa
+    }
     const compact = computeLayout(1.5, 3, 3, true);
     const wide = computeLayout(1.5, 3, 3, false);
-    expect(compact.board.w / compact.width).toBeGreaterThan((wide.board.w / wide.width) * 1.1);
+    expect(compact.board.w / compact.width).toBeGreaterThan((wide.board.w / wide.width) * 1.4);
   });
 });
 

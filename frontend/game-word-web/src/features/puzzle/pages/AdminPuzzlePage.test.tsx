@@ -35,6 +35,7 @@ const game = (id: number, imageId: number): PuzzleGame => ({
   width: 900,
   height: 600,
   imageVersion: 1000 + imageId,
+  snapPercent: 8,
   rows: 3,
   cols: 3,
   active: true,

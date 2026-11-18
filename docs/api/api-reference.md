@@ -250,10 +250,11 @@ Game chơi đơn do quản trị tạo sẵn: một game = một ảnh trong kho
 | POST | `/api/admin/puzzle/images/{id}/edit` | ADMIN | Xoay rồi cắt: `{ degrees?, cropX?, cropY?, cropWidth?, cropHeight?, asCopy?, title? }`. Vùng cắt là tỉ lệ 0..1 của ảnh **sau khi xoay**, phải đủ cả 4 giá trị. `asCopy: true` lưu thành ảnh mới (giữ ảnh gốc). Không có thay đổi nào thì 400 `Nothing to edit` |
 | DELETE | `/api/admin/puzzle/images/{id}` | ADMIN | Xóa ảnh kèm các game dùng ảnh và xếp hạng của chúng (204). Giao diện cho chọn nhiều ảnh để xóa một lượt và cảnh báo số game bị xóa theo |
 | GET | `/api/admin/puzzle/games` | ADMIN | Mọi game kể cả game đang ẩn |
-| POST | `/api/admin/puzzle/games` | ADMIN | `{ imageId, rows, cols, title? }`; `rows`, `cols` trong 2–12; không gửi `title` thì lấy tên ảnh |
-| PUT | `/api/admin/puzzle/games/{id}` | ADMIN | `{ title?, active? }`. Không đổi được lưới (sẽ làm sai xếp hạng): muốn đổi thì tạo game mới |
+| POST | `/api/admin/puzzle/games` | ADMIN | `{ imageId, rows, cols, title?, snapPercent? }`; `rows`, `cols` trong 2–12; không gửi `title` thì lấy tên ảnh; không gửi `snapPercent` thì dùng mặc định 8 |
+| PUT | `/api/admin/puzzle/games/{id}` | ADMIN | `{ title?, active?, snapPercent? }`. Không đổi được lưới (sẽ làm sai xếp hạng): muốn đổi thì tạo game mới |
 | DELETE | `/api/admin/puzzle/games/{id}` | ADMIN | Xóa game và xếp hạng của game (204) |
 
+- Độ tự động khớp (`snapPercent`, cột `puzzle_games.snap_percent`): mỗi game lưu riêng, 2–20, mặc định 8 (`puzzle.default-snap-percent`, ngoài khoảng `puzzle.min-snap-percent`/`max-snap-percent` trả 400 `Invalid snap`). Danh sách game trả kèm `snapPercent`. Giá trị 8 là mức chuẩn (khoảng 8% cạnh ngắn của ô, kẹp 7–18 đơn vị); các giá trị khác nhân theo tỉ lệ `snapPercent / 8`. Trên điện thoại (bố cục dọc hoặc ngang) frontend tự cộng thêm 20% (×1,2) vì màn hình nhỏ khó thao tác chính xác hơn; hệ số này không lưu ở server. Game có sẵn trước khi có cột này được gán 8, giữ nguyên cảm giác chơi.
 - Phân quyền: `users.role` là `USER` hoặc `ADMIN`; `/api/admin/**` yêu cầu `ROLE_ADMIN` (403 nếu không). Quyền được nạp từ DB ở mỗi request, không lấy từ JWT. `AuthResponse` có thêm `role` chỉ để ẩn/hiện giao diện. Tài khoản có tên trong `app.admin-usernames` (biến môi trường `ADMIN_USERNAMES`, phân cách bằng dấu phẩy, không phân biệt hoa thường) được nâng lên ADMIN lúc khởi động và lúc đăng ký. Người vừa được cấp quyền cần đăng nhập lại để giao diện hiện menu quản trị.
 - Upload: tối đa `puzzle.max-upload-bytes` (8MB), cạnh ngắn tối thiểu `puzzle.min-image-side` (300px), tối đa 40 triệu điểm ảnh. Server giải mã rồi mã hóa lại thành JPEG, thu nhỏ cạnh dài về `puzzle.max-image-side` (1600px); nội dung không phải ảnh bị từ chối. Nginx cho phép body 10MB riêng cho `/api/admin/puzzle/images`.
 - Ảnh chụp từ điện thoại: ảnh dọc thường lưu dạng ngang kèm cờ xoay EXIF (Orientation 1–8). Khi upload server đọc cờ này và xoay ảnh đúng chiều trước khi mã hóa lại (mã hóa lại làm mất EXIF). Ảnh đã lưu sai chiều từ trước thì dùng xoay/sửa ảnh ở trên.
@@ -288,3 +289,4 @@ Lỗi phát sinh trong filter bảo mật (ví dụ token sai/hết hạn) khôn
 | 0.5 | 2026-11-15 | Ghép hình: admin tạo sẵn game (ảnh + lưới), xếp hạng theo `gameId`; bỏ `GET /api/puzzle/images` |
 | 0.6 | 2026-11-17 | Ghép hình: `GET /api/puzzle/games` và `/api/puzzle/leaderboard` công khai, chơi không cần đăng nhập |
 | 0.7 | 2026-11-17 | Ghép hình: đọc cờ xoay EXIF khi upload; `rotate`, `edit` (xoay + cắt, lưu bản sao); ETag cho ảnh |
+| 0.8 | 2026-11-18 | Ghép hình: `snapPercent` cho từng game (mặc định 8, 2–20); điện thoại tự cộng 20%; cụm mảnh |

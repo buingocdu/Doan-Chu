@@ -97,6 +97,7 @@ export default function PuzzlePage() {
           aspect={game.width && game.height ? game.width / game.height : 1}
           rows={game.rows}
           cols={game.cols}
+          snapPercent={game.snapPercent}
           onFinish={(r) => void handleFinish(r)}
           onExit={backToList}
         />

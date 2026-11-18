@@ -275,6 +275,60 @@ class PuzzleFlowIntegrationTest {
     }
 
     @Test
+    void gameStoresSnapPercentWithDefaultAndAdminCanAdjustIt() throws Exception {
+        String admin = register(true);
+        String user = register(false);
+        long imageId = uploadImage(admin, "Khop");
+
+        // Khong gui snapPercent: dung mac dinh 8
+        MvcResult created = mvc.perform(post("/api/admin/puzzle/games").header("Authorization", admin)
+                .contentType("application/json").content("{\"imageId\":" + imageId + ",\"rows\":3,\"cols\":3}"))
+            .andExpect(status().isOk()).andReturn();
+        JsonNode game = JSON.readTree(created.getResponse().getContentAsString());
+        assertEquals(8, game.get("snapPercent").asInt());
+        long id = game.get("id").asLong();
+
+        // Tao voi gia tri tuy chinh
+        MvcResult custom = mvc.perform(post("/api/admin/puzzle/games").header("Authorization", admin)
+                .contentType("application/json")
+                .content("{\"imageId\":" + imageId + ",\"rows\":4,\"cols\":4,\"snapPercent\":14}"))
+            .andExpect(status().isOk()).andReturn();
+        assertEquals(14, JSON.readTree(custom.getResponse().getContentAsString()).get("snapPercent").asInt());
+
+        // Ngoai khoang 2-20 bi tu choi, ca luc tao lan luc sua
+        for (int bad : new int[] {1, 0, -5, 21, 99}) {
+            mvc.perform(post("/api/admin/puzzle/games").header("Authorization", admin)
+                .contentType("application/json")
+                .content("{\"imageId\":" + imageId + ",\"rows\":3,\"cols\":3,\"snapPercent\":" + bad + "}"))
+                .andExpect(status().isBadRequest());
+            mvc.perform(put("/api/admin/puzzle/games/" + id).header("Authorization", admin)
+                .contentType("application/json").content("{\"snapPercent\":" + bad + "}"))
+                .andExpect(status().isBadRequest());
+        }
+
+        // Dieu chinh sau khi tao; cac truong khac giu nguyen
+        MvcResult updated = mvc.perform(put("/api/admin/puzzle/games/" + id).header("Authorization", admin)
+                .contentType("application/json").content("{\"snapPercent\":5}"))
+            .andExpect(status().isOk()).andReturn();
+        JsonNode u = JSON.readTree(updated.getResponse().getContentAsString());
+        assertEquals(5, u.get("snapPercent").asInt());
+        assertEquals(3, u.get("rows").asInt());
+        assertTrue(u.get("active").asBoolean());
+        // Chi doi tieu de thi khong dong vao snapPercent
+        MvcResult renamed = mvc.perform(put("/api/admin/puzzle/games/" + id).header("Authorization", admin)
+                .contentType("application/json").content("{\"title\":\"Doi ten\"}"))
+            .andExpect(status().isOk()).andReturn();
+        assertEquals(5, JSON.readTree(renamed.getResponse().getContentAsString()).get("snapPercent").asInt());
+
+        // Nguoi choi nhan duoc snapPercent trong danh sach game; nguoi thuong khong sua duoc
+        String list = mvc.perform(get("/api/puzzle/games").header("Authorization", user))
+            .andReturn().getResponse().getContentAsString();
+        assertTrue(list.contains("\"snapPercent\":5"));
+        mvc.perform(put("/api/admin/puzzle/games/" + id).header("Authorization", user)
+            .contentType("application/json").content("{\"snapPercent\":10}")).andExpect(status().isForbidden());
+    }
+
+    @Test
     void gameImageVersionChangesWhenTheImageIsEdited() throws Exception {
         String admin = register(true);
         long imageId = uploadImage(admin, "Phien ban");

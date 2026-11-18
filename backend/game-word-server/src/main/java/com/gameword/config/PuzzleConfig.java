@@ -16,6 +16,10 @@ public class PuzzleConfig {
     private int minImageSide = 300;
     // Thoi gian toi thieu moi manh ghep (ms) de ket qua duoc coi la hop le
     private long minMsPerPiece = 300;
+    // Do tu dong khop (phan tram canh ngan cua o): mac dinh khi tao game va khoang cho phep admin chinh
+    private int defaultSnapPercent = 8;
+    private int minSnapPercent = 2;
+    private int maxSnapPercent = 20;
 
     public int getMinGrid() { return minGrid; }
     public void setMinGrid(int minGrid) { this.minGrid = minGrid; }
@@ -27,6 +31,12 @@ public class PuzzleConfig {
     public void setMaxImageSide(int maxImageSide) { this.maxImageSide = maxImageSide; }
     public int getMinImageSide() { return minImageSide; }
     public void setMinImageSide(int minImageSide) { this.minImageSide = minImageSide; }
+    public int getDefaultSnapPercent() { return defaultSnapPercent; }
+    public void setDefaultSnapPercent(int v) { this.defaultSnapPercent = v; }
+    public int getMinSnapPercent() { return minSnapPercent; }
+    public void setMinSnapPercent(int v) { this.minSnapPercent = v; }
+    public int getMaxSnapPercent() { return maxSnapPercent; }
+    public void setMaxSnapPercent(int v) { this.maxSnapPercent = v; }
     public long getMinMsPerPiece() { return minMsPerPiece; }
     public void setMinMsPerPiece(long minMsPerPiece) { this.minMsPerPiece = minMsPerPiece; }
 }

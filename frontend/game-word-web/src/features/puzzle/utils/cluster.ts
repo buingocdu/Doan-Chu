@@ -43,8 +43,9 @@ export function findMerge(
   groups: readonly number[],
   placed: readonly boolean[],
   movingIds: readonly number[],
+  snapPercent?: number | null,
 ): MergeMatch | null {
-  const tolerance = snapTolerance(layout);
+  const tolerance = snapTolerance(layout, snapPercent);
   let best: MergeMatch | null = null;
   for (const i of movingIds) {
     const homeI = homePosition(layout, i);

@@ -213,7 +213,7 @@ export const getAdminPuzzleGames = () => API.get<PuzzleGame[]>('/admin/puzzle/ga
 export const createPuzzleGame = (data: PuzzleGameRequest) =>
   API.post<PuzzleGame>('/admin/puzzle/games', data).then((r) => r.data);
 
-export const updatePuzzleGame = (id: number, data: { title?: string; active?: boolean }) =>
+export const updatePuzzleGame = (id: number, data: { title?: string; active?: boolean; snapPercent?: number }) =>
   API.put<PuzzleGame>(`/admin/puzzle/games/${id}`, data).then((r) => r.data);
 
 export const deletePuzzleGame = (id: number) => API.delete(`/admin/puzzle/games/${id}`).then(() => undefined);
@@ -271,6 +271,7 @@ const KNOWN_MESSAGES: Record<string, string> = {
   'Image not found': 'Không tìm thấy ảnh.',
   'Invalid rotation': 'Góc xoay không hợp lệ.',
   'Invalid crop': 'Vùng cắt không hợp lệ.',
+  'Invalid snap': 'Độ tự động khớp phải từ 2 đến 20.',
   'Nothing to edit': 'Chưa có thay đổi nào để lưu.',
   'Puzzle not found': 'Game ghép hình này không còn nữa hoặc đang bị ẩn.',
   'Image file is required': 'Vui lòng chọn một file ảnh.',

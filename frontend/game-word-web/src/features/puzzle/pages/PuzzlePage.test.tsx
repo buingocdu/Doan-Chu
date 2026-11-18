@@ -18,6 +18,7 @@ const game = (over: Partial<PuzzleGame>): PuzzleGame => ({
   width: 1200,
   height: 1200,
   imageVersion: 470023,
+  snapPercent: 8,
   rows: 3,
   cols: 3,
   active: true,

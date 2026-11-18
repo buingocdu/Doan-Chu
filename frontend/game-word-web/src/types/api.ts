@@ -263,6 +263,8 @@ export interface PuzzleGame {
   imageVersion: number | null;
   rows: number;
   cols: number;
+  /** Độ tự động khớp vào khung (2–20, mặc định 8) */
+  snapPercent: number;
   active: boolean;
   createdAt: string;
 }
@@ -272,6 +274,8 @@ export interface PuzzleGameRequest {
   title?: string;
   rows: number;
   cols: number;
+  /** Không gửi thì dùng mặc định */
+  snapPercent?: number;
 }
 
 export interface PuzzleScoreRequest {

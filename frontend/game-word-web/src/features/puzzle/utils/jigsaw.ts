@@ -90,6 +90,8 @@ export interface Rect {
 }
 
 export interface Layout {
+  /** Chế độ bố cục: điện thoại (compact/landscape) được cộng thêm hệ số khớp vì màn hình nhỏ khó chơi hơn */
+  mode: LayoutMode;
   width: number;
   height: number;
   /** Khung đặt ảnh hoàn chỉnh */
@@ -116,6 +118,8 @@ const BOTTOM_MARGIN = 24;
 const TAB_HEIGHT = 0.255;
 const THUMB_MAX = 160;
 const THUMB_MARGIN = 12;
+// Chỗ chừa dưới hình mẫu thu nhỏ cho chú thích và khung viền (bố cục điện thoại dọc)
+const COMPACT_THUMB_CAPTION = 34;
 
 const LANDSCAPE_HEIGHT = 448;
 
@@ -131,9 +135,10 @@ export function computeLayout(
   const landscape = layoutMode === 'landscape';
   const safeAspect = Number.isFinite(aspect) && aspect > 0 ? aspect : 1;
   const logicalWidth = compact ? COMPACT_LOGICAL_WIDTH : LOGICAL_WIDTH;
-  const boardMaxW = landscape ? 560 : compact ? 400 : BOARD_MAX_W;
+  // Điện thoại dọc: khung ghép chiếm gần hết bề ngang (chừa lề 2 bên), hình mẫu để ở hàng riêng phía trên
+  const boardMaxW = landscape ? 560 : compact ? COMPACT_LOGICAL_WIDTH - 2 * 8 : BOARD_MAX_W;
   const boardMaxH = landscape ? 400 : compact ? 520 : BOARD_MAX_H;
-  const thumbMax = landscape ? 120 : compact ? 100 : THUMB_MAX;
+  const thumbMax = landscape ? 120 : compact ? 84 : THUMB_MAX;
   const margin = compact ? 8 : THUMB_MARGIN;
   let w = boardMaxW;
   let h = w / safeAspect;
@@ -144,17 +149,21 @@ export function computeLayout(
   const cellW = w / cols;
   const cellH = h / rows;
   const pad = Math.ceil(Math.min(cellW, cellH) * (TAB_HEIGHT + 0.03));
-  // compact/landscape: khung sát trái, hình mẫu ở lề phải; wide: khung ở giữa
-  const board = { x: compact || landscape ? margin : (logicalWidth - w) / 2, y: BOARD_TOP, w, h };
   const thumbW = safeAspect >= 1 ? thumbMax : thumbMax * safeAspect;
   const thumbH = safeAspect >= 1 ? thumbMax / safeAspect : thumbMax;
-  const thumb = { x: logicalWidth - thumbW - margin, y: BOARD_TOP, w: thumbW, h: thumbH };
+  // compact: hình mẫu ở hàng riêng phía trên khung (kèm chú thích) để khung không bị nhường lề phải;
+  // landscape: khung sát trái, hình mẫu ở lề phải; wide: khung ở giữa, hình mẫu ở lề phải
+  const thumbY = compact ? margin : BOARD_TOP;
+  const boardY = compact ? thumbY + thumbH + COMPACT_THUMB_CAPTION : BOARD_TOP;
+  const board = { x: landscape ? margin : (logicalWidth - w) / 2, y: boardY, w, h };
+  const thumb = { x: logicalWidth - thumbW - margin, y: thumbY, w: thumbW, h: thumbH };
 
   if (landscape) {
     // Khung bên trái, khay bên phải (dưới hình mẫu): toàn bộ bố cục thấp để vừa màn hình ngang
     const trayX = board.x + w + 24;
     const trayY = thumb.y + thumbH + 10;
     return {
+      mode: layoutMode,
       width: logicalWidth,
       height: LANDSCAPE_HEIGHT,
       thumb,
@@ -170,6 +179,7 @@ export function computeLayout(
 
   const trayTop = board.y + h + TRAY_GAP;
   return {
+    mode: layoutMode,
     width: logicalWidth,
     height: trayTop + TRAY_HEIGHT + BOTTOM_MARGIN,
     thumb,
@@ -237,14 +247,33 @@ export const SNAP_RATIO = 0.08;
 export const SNAP_MIN = 7;
 export const SNAP_MAX = 18;
 
-export function snapTolerance(layout: Layout): number {
-  return Math.min(SNAP_MAX, Math.max(SNAP_MIN, Math.min(layout.cellW, layout.cellH) * SNAP_RATIO));
+/** Độ tự động khớp của game (do quản trị đặt): phần trăm so với mức chuẩn. 8 = mức chuẩn ở trên, nhân tỉ lệ theo giá trị */
+export const DEFAULT_SNAP_PERCENT = 8;
+export const MIN_SNAP_PERCENT = 2;
+export const MAX_SNAP_PERCENT = 20;
+/** Màn hình điện thoại nhỏ, thao tác khó chính xác hơn máy tính nên ngưỡng tự động cộng thêm 20% */
+export const MOBILE_SNAP_BOOST = 1.2;
+
+export function clampSnapPercent(value: number | null | undefined): number {
+  if (value === null || value === undefined || !Number.isFinite(value)) return DEFAULT_SNAP_PERCENT;
+  return Math.min(MAX_SNAP_PERCENT, Math.max(MIN_SNAP_PERCENT, value));
+}
+
+export function snapTolerance(layout: Layout, snapPercent: number | null | undefined = DEFAULT_SNAP_PERCENT): number {
+  const base = Math.min(SNAP_MAX, Math.max(SNAP_MIN, Math.min(layout.cellW, layout.cellH) * SNAP_RATIO));
+  const boost = layout.mode === 'wide' ? 1 : MOBILE_SNAP_BOOST;
+  return base * (clampSnapPercent(snapPercent) / DEFAULT_SNAP_PERCENT) * boost;
 }
 
 /** Mảnh đang nằm sát vị trí đúng: viền sáng nhẹ khi kéo, thả ra thì tự nhảy về đúng chỗ */
-export function isNearHome(layout: Layout, p: Point, index: number): boolean {
+export function isNearHome(
+  layout: Layout,
+  p: Point,
+  index: number,
+  snapPercent: number | null | undefined = DEFAULT_SNAP_PERCENT,
+): boolean {
   const home = homePosition(layout, index);
-  return Math.hypot(p.x - home.x, p.y - home.y) <= snapTolerance(layout);
+  return Math.hypot(p.x - home.x, p.y - home.y) <= snapTolerance(layout, snapPercent);
 }
 
 // Đường cong một ngàm, tọa độ (lệch dọc theo cạnh so với tâm, chiều cao) tính theo đơn vị cạnh ngắn của ô

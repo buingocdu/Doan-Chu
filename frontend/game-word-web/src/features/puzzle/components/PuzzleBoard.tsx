@@ -30,6 +30,8 @@ interface PuzzleBoardProps {
   aspect: number;
   rows: number;
   cols: number;
+  /** Độ tự động khớp của game (mặc định 8); điện thoại tự cộng thêm 20% */
+  snapPercent?: number | null;
   onFinish: (result: PuzzleResult) => void;
   onExit: () => void;
 }
@@ -42,7 +44,7 @@ interface DragState {
   starts: Point[];
 }
 
-export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, onExit }: PuzzleBoardProps) {
+export default function PuzzleBoard({ imageUrl, aspect, rows, cols, snapPercent, onFinish, onExit }: PuzzleBoardProps) {
   const total = rows * cols;
   // Bố cục theo kích thước màn hình; xoay ngang/dọc thì đổi chế độ và xếp lại mảnh (giữ nguyên tiến độ)
   const [mode, setMode] = useState<LayoutMode>(() => pickLayoutMode(window.innerWidth, window.innerHeight));
@@ -270,8 +272,8 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
 
   // Cụm (hoặc mảnh lẻ) đang ở sát vị trí đúng trên khung, hoặc sát một mảnh kề để ghép
   const isSnapReady = (ids: number[], pos: Point[]) =>
-    ids.some((i) => isNearHome(layout, pos[i], i)) ||
-    findMerge(layout, pos, groupsRef.current, placedRef.current, ids) !== null;
+    ids.some((i) => isNearHome(layout, pos[i], i, snapPercent)) ||
+    findMerge(layout, pos, groupsRef.current, placedRef.current, ids, snapPercent) !== null;
 
   const handlePointerDown = useCallback((index: number, event: PointerEvent<HTMLDivElement>) => {
     if (finishedRef.current || event.button > 0) return;
@@ -327,7 +329,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     const pos = positionsRef.current.slice();
     let ids = members;
     const snapToBoard = (group: number[]): boolean => {
-      const anchor = group.find((i) => isNearHome(layout, pos[i], i));
+      const anchor = group.find((i) => isNearHome(layout, pos[i], i, snapPercent));
       if (anchor === undefined) return false;
       const home = homePosition(layout, anchor);
       const dx = home.x - pos[anchor].x;
@@ -346,7 +348,7 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
     let nextGroups = groupsRef.current;
     let merged = false;
     for (let guard = 0; guard < total; guard++) {
-      const match = findMerge(layout, pos, nextGroups, placedRef.current, ids);
+      const match = findMerge(layout, pos, nextGroups, placedRef.current, ids, snapPercent);
       if (!match) break;
       ids.forEach((i) => {
         pos[i] = { x: pos[i].x + match.shift.x, y: pos[i].y + match.shift.y };
@@ -418,31 +420,42 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
         <span className="puzzle-stat">
           Đã đặt {placedCount}/{total}
         </span>
-        <span className="puzzle-stat">{moves} lượt kéo</span>
+        <span className="puzzle-stat puzzle-stat-moves">{moves} lượt kéo</span>
         <span className="puzzle-toolbar-spacer" />
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           aria-pressed={showPreview}
+          aria-label={showPreview ? 'Thu nhỏ ảnh mẫu' : 'Phóng to ảnh mẫu'}
+          title={showPreview ? 'Thu nhỏ ảnh mẫu' : 'Phóng to ảnh mẫu'}
           onClick={() => setShowPreview((v) => !v)}
         >
           {showPreview ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-          {showPreview ? 'Thu nhỏ ảnh mẫu' : 'Phóng to ảnh mẫu'}
+          <span className="btn-label">{showPreview ? 'Thu nhỏ ảnh mẫu' : 'Phóng to ảnh mẫu'}</span>
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={placeHint} disabled={done}>
-          <Lightbulb size={16} aria-hidden="true" /> Gợi ý
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          aria-label="Gợi ý"
+          title="Gợi ý: tự đặt một mảnh (không vào xếp hạng)"
+          onClick={placeHint}
+          disabled={done}
+        >
+          <Lightbulb size={16} aria-hidden="true" /> <span className="btn-label">Gợi ý</span>
         </button>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           aria-pressed={fullscreen}
+          aria-label={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+          title={fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
           onClick={toggleFullscreen}
         >
           {fullscreen ? <Minimize size={16} aria-hidden="true" /> : <Maximize size={16} aria-hidden="true" />}
-          {fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+          <span className="btn-label">{fullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}</span>
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onExit}>
-          <LogOut size={16} aria-hidden="true" /> Thoát
+        <button type="button" className="btn btn-ghost btn-sm" aria-label="Thoát" title="Thoát ván" onClick={onExit}>
+          <LogOut size={16} aria-hidden="true" /> <span className="btn-label">Thoát</span>
         </button>
       </div>
       <div className="puzzle-filter" role="group" aria-label="Lọc mảnh trong khay">
@@ -451,25 +464,30 @@ export default function PuzzleBoard({ imageUrl, aspect, rows, cols, onFinish, on
           type="button"
           className={`puzzle-chip${filter === 'all' ? ' is-active' : ''}`}
           aria-pressed={filter === 'all'}
+          aria-label={`Tất cả (${total - placedCount})`}
           onClick={() => setFilter('all')}
         >
-          Tất cả ({total - placedCount})
+          Tất cả <span className="chip-count">({total - placedCount})</span>
         </button>
         <button
           type="button"
           className={`puzzle-chip${filter === 'edge' ? ' is-active' : ''}`}
           aria-pressed={filter === 'edge'}
+          aria-label={`Mảnh viền (${remainingEdge})`}
           onClick={() => setFilter('edge')}
         >
-          Mảnh viền ({remainingEdge})
+          <span className="chip-long">Mảnh viền</span>
+          <span className="chip-short">Viền</span> <span className="chip-count">({remainingEdge})</span>
         </button>
         <button
           type="button"
           className={`puzzle-chip${filter === 'inner' ? ' is-active' : ''}`}
           aria-pressed={filter === 'inner'}
+          aria-label={`Mảnh trong (${remainingInner})`}
           onClick={() => setFilter('inner')}
         >
-          Mảnh trong ({remainingInner})
+          <span className="chip-long">Mảnh trong</span>
+          <span className="chip-short">Trong</span> <span className="chip-count">({remainingInner})</span>
         </button>
       </div>
       {!done && filter !== 'all' && (filter === 'edge' ? remainingEdge : remainingInner) === 0 && (

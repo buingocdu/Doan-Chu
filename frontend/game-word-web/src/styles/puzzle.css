@@ -204,6 +204,10 @@
   cursor: pointer;
 }
 
+.puzzle-chip .chip-short {
+  display: none;
+}
+
 .puzzle-chip.is-active {
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 16%, transparent);
@@ -738,8 +742,41 @@ button.puzzle-level {
     font-size: 14px;
   }
 
+  /* Thanh công cụ gọn trên điện thoại: nút chỉ còn biểu tượng (đã có nhãn trợ năng), ẩn bớt thông tin phụ */
+  .puzzle-toolbar {
+    gap: 0.3rem;
+  }
+
   .puzzle-toolbar .btn-sm {
-    padding: 0.3rem 0.55rem;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .puzzle-toolbar .btn-label,
+  .puzzle-stat-moves,
+  .puzzle-filter-label,
+  .puzzle-title {
+    display: none;
+  }
+
+  .puzzle-stat {
+    padding: 0.1rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .puzzle-filter {
+    gap: 0.3rem;
+  }
+
+  .puzzle-chip {
+    padding: 0.2rem 0.6rem;
+  }
+
+  .puzzle-chip .chip-long {
+    display: none;
+  }
+
+  .puzzle-chip .chip-short {
+    display: inline;
   }
 }
 
@@ -970,4 +1007,64 @@ body.puzzle-fullscreen-lock {
 
 .editor-size.is-bad {
   color: var(--danger);
+}
+
+/* ----- Độ tự động khớp ----- */
+.snap-slider {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 28rem;
+}
+
+.snap-slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.snap-slider-head label {
+  font-weight: 600;
+}
+
+.snap-slider-head output {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.snap-slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
+.snap-slider-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.snap-slider-hint {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.snap-slider .btn {
+  justify-self: start;
+}
+
+.admin-snap {
+  margin-top: 0.3rem;
+}
+
+.admin-snap summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-snap[open] {
+  display: grid;
+  gap: 0.5rem;
 }
