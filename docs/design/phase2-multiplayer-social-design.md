@@ -58,9 +58,9 @@ related_documents: ["DOC-001", "DOC-002", "DOC-003", "DOC-004"]
 ### 3.2 Đua đoán chữ (`WORD_GUESS`)
 
 - Server chọn ngẫu nhiên **một từ chung** (dùng `WordService.getRandomWord`, cân bằng theo cấp độ như chơi đơn).
-- Mỗi người có **10 lượt** (`game.guess.max-attempts`), chấm màu giống hệt chơi đơn (`GameService.evaluateGuess`).
+- Mỗi người có **6 lượt** (`game.max-attempts`, dùng chung với chơi đơn), chấm màu giống hệt chơi đơn (`GameService.evaluateGuess`).
 - **Người gửi đáp án đúng đầu tiên (theo thời điểm server nhận) thắng** → ván kết thúc ngay cho mọi người.
-- Người hết 10 lượt mà chưa đúng: dừng, xem người khác chơi.
+- Người hết lượt (mặc định 6) mà chưa đúng: dừng, xem người khác chơi.
 - Ván kết thúc **không có người thắng** khi: tất cả hết lượt/bỏ cuộc, hoặc hết **thời gian ván 5 phút**.
 - Trong lúc chơi, mỗi người thấy: bảng của mình (đủ chữ + màu) và **bảng thu nhỏ của đối thủ chỉ có màu, không có chữ** (kiểu Wordle đối kháng), để không lộ đáp án.
 - Hết ván: hiện đáp án + giải nghĩa cho tất cả.
@@ -222,7 +222,7 @@ Lỗi theo quy ước hiện có: HTTP 400 + `{ status, message }` với message
     "id": 9, "gameType": "WORD_GUESS", "status": "PLAYING", "winnerId": null, "endsAt": 1793350300000,
     "players": [{ "userId": 2, "username": "binh", "attempts": 3, "eliminated": false, "solved": false,
                   "colorRows": [["GREEN","BLACK","YELLOW","BLACK","BLUE","BLACK","BLACK"]] }],
-    "wordLength": 7, "partLengths": [3, 4], "maxAttempts": 10,
+    "wordLength": 7, "partLengths": [3, 4], "maxAttempts": 6,
     "myRows": [[{ "index": 0, "letter": "V", "color": "GREEN", "label": "xanh la" }]],
     "answer": null, "definition": null,
     "currentUserId": null, "turnDeadline": null, "requiredSyllable": null, "chain": []
@@ -304,7 +304,7 @@ Mỗi mốc là một nhánh/PR riêng, có test, deploy được độc lập.
 | # | Câu hỏi | Đề xuất mặc định |
 |---|---------|------------------|
 | Q1 | Nối từ: gõ sai chính tả (từ không có trong từ điển) có bị loại ngay không, hay cho thử lại trong 30 giây? | **Loại ngay** theo luật đã chọn; lỗi định dạng thì không loại |
-| Q2 | Thông số: 8 người/phòng, 30 giây/lượt Nối từ, 5 phút/ván Đua đoán chữ, 10 lượt đoán | Như bên trái, đặt trong `application.properties` để chỉnh được |
+| Q2 | Thông số: 8 người/phòng, 30 giây/lượt Nối từ, 5 phút/ván Đua đoán chữ, 6 lượt đoán (trước đây 10) | Như bên trái, đặt trong `application.properties` để chỉnh được |
 | Q3 | Đua đoán chữ: cho đối thủ thấy **màu** (không thấy chữ) của nhau? | **Có** |
 | Q4 | Người vào giữa ván: làm người xem, chơi từ ván sau? | **Có** |
 | Q5 | Có cần danh sách phòng công khai để người lạ vào? | **Không** (chỉ mã phòng + mời bạn) |

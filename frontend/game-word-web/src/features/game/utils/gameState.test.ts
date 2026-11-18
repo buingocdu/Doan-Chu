@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CellResult, GuessResponse } from '../../../types/api';
 import {
   formatGuess,
+  scoreForAttempt,
   countLetters,
   gameReducer,
   initialGameState,
@@ -130,5 +131,18 @@ describe('ô nhập liệu', () => {
     expect(normalizeParts([3, 4], 7)).toEqual([3, 4]);
     expect(normalizeParts([3, 3], 7)).toEqual([7]);
     expect(normalizeParts(undefined, 5)).toEqual([5]);
+  });
+});
+
+describe('scoreForAttempt', () => {
+  it('6 lượt: giảm đều 100, 82, 64, 46, 28, 10', () => {
+    expect([1, 2, 3, 4, 5, 6].map((n) => scoreForAttempt(n, 6))).toEqual([100, 82, 64, 46, 28, 10]);
+  });
+
+  it('10 lượt: 100, 90, ..., 10 như cũ; luôn trong khoảng 10–100', () => {
+    expect(Array.from({ length: 10 }, (_, i) => scoreForAttempt(i + 1, 10))).toEqual([100, 90, 80, 70, 60, 50, 40, 30, 20, 10]);
+    expect(scoreForAttempt(0, 6)).toBe(100);
+    expect(scoreForAttempt(99, 6)).toBe(10);
+    expect(scoreForAttempt(1, 1)).toBe(100);
   });
 });

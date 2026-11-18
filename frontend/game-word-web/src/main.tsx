@@ -4,6 +4,7 @@ import App from './App';
 import './styles/global.css';
 import './styles/phase2.css';
 import './styles/puzzle.css';
+import './styles/doanchu.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Không tìm thấy phần tử #root');

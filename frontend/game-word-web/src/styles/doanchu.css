@@ -1,0 +1,399 @@
+/* ===== Giao diện nổi bật cho game Đoán Chữ (tham khảo doanchu.vn: nền đỏ đậm, ô chữ nền than viền vàng) =====
+   Chỉ đổi cách trình bày, mọi thành phần và chức năng giữ nguyên. Chỉ áp dụng khi <body> có class theme-doanchu
+   (useDoanChuTheme bật khi trang Đoán chữ mở). Đổi bộ biến màu của body nên thanh điều hướng và các nút dùng chung
+   tự đổi theo mà không cần sửa từng thành phần. */
+
+body.theme-doanchu {
+  color-scheme: dark;
+  --bg: #9d2527;
+  --surface: #7d1b1e;
+  --surface-2: #671517;
+  --border: rgb(255 255 255 / 18%);
+  --text: #fff;
+  --text-muted: #f4cfcf;
+  --primary: #f6b21b;
+  --primary-hover: #ffc83d;
+  --primary-text: #52090c;
+  --danger: #ffd9d9;
+  --danger-bg: rgb(0 0 0 / 30%);
+  --focus: #ffe08a;
+  --tile-empty: #26262a;
+  --tile-border: #d4a017;
+  --tile-filled-border: #ffd24a;
+  --key-bg: #2f2f34;
+  --key-text: #fff;
+  --green: #22c55e;
+  --yellow: #f59e0b;
+  --blue: #3b82f6;
+  --gray: #2b2b2e;
+  --on-color: #fff;
+  --shadow: 0 2px 6px rgb(0 0 0 / 25%), 0 10px 28px rgb(0 0 0 / 28%);
+  /* Nền đỏ có vầng sáng ở giữa phía trên để bớt phẳng */
+  background:
+    radial-gradient(60% 40% at 50% 12%, rgb(255 196 90 / 22%) 0%, transparent 70%),
+    radial-gradient(120% 80% at 50% -10%, #c43a38 0%, #9d2527 48%, #7d171a 100%),
+    #9d2527;
+  background-attachment: fixed;
+}
+
+/* Chấm hạt mờ phủ nền */
+body.theme-doanchu::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(255 255 255 / 6%) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Liên kết trong nội dung màu vàng; thanh điều hướng giữ màu riêng */
+body.theme-doanchu .main a {
+  color: #ffd24a;
+}
+
+body.theme-doanchu .btn-primary {
+  border: 1px solid #ffe08a;
+  background: linear-gradient(180deg, #ffd24a 0%, #f0a30f 100%);
+  color: var(--primary-text);
+  font-weight: 800;
+  box-shadow:
+    0 3px 0 #a86a00,
+    0 6px 16px rgb(246 178 27 / 30%);
+}
+
+body.theme-doanchu .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffe07a 0%, #f7b323 100%);
+}
+
+body.theme-doanchu .btn-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #a86a00;
+}
+
+body.theme-doanchu .btn-ghost {
+  border-color: rgb(255 255 255 / 16%);
+  background: rgb(0 0 0 / 28%);
+  color: #fff;
+}
+
+body.theme-doanchu .btn-ghost:hover:not(:disabled) {
+  background: rgb(0 0 0 / 42%);
+}
+
+/* ----- Khung chơi: "sân khấu" có viền vàng và vầng sáng ----- */
+body.theme-doanchu .game {
+  position: relative;
+  padding: 1.2rem 1.1rem 1.4rem;
+  border: 1px solid rgb(255 214 90 / 38%);
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgb(0 0 0 / 28%) 0%, rgb(0 0 0 / 14%) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 30%),
+    0 20px 44px rgb(0 0 0 / 36%),
+    0 0 70px rgb(255 160 40 / 14%);
+}
+
+body.theme-doanchu .game::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, #ffd24a 25%, #fff0a8 50%, #ffd24a 75%, transparent);
+  box-shadow: 0 0 14px rgb(255 210 74 / 70%);
+}
+
+/* ----- Phần đầu: tiêu đề lấp lánh, nút Từ khác vàng ----- */
+body.theme-doanchu .game-head {
+  align-items: center;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+}
+
+.dc-title {
+  display: inline-block;
+  margin: 0;
+  font-size: clamp(1.9rem, 5.5vw, 2.7rem);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  color: transparent;
+  background: linear-gradient(100deg, #fff0a8 0%, #ffc936 28%, #ff8a1f 52%, #ffc936 76%, #fff0a8 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(1.5px 0 0 #4a0709) drop-shadow(-1.5px 0 0 #4a0709) drop-shadow(0 1.5px 0 #4a0709)
+    drop-shadow(0 -1.5px 0 #4a0709) drop-shadow(0 4px 0 #4a0709) drop-shadow(0 9px 10px rgb(0 0 0 / 35%));
+  animation: dc-shine 5s linear infinite;
+}
+
+@keyframes dc-shine {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+
+body.theme-doanchu .game-head .muted {
+  color: var(--text-muted);
+}
+
+body.theme-doanchu .game-head .btn-ghost:not(:disabled) {
+  border-color: #ffe08a;
+  background: linear-gradient(180deg, #ffd24a 0%, #f0a30f 100%);
+  color: var(--primary-text);
+  font-weight: 800;
+  box-shadow: 0 3px 0 #a86a00;
+}
+
+body.theme-doanchu .game-head .btn-ghost:disabled {
+  opacity: 0.6;
+}
+
+/* ----- Bảng đoán: ô lớn hơn, sáng viền, phát sáng theo màu ----- */
+body.theme-doanchu .board {
+  --gap: 6px;
+  --part-gap: 22px;
+  --tile: max(
+    1.7rem,
+    min(
+      3.9rem,
+      calc((100vw - 4.5rem - (var(--cols) - var(--parts)) * var(--gap) - (var(--parts) - 1) * var(--part-gap)) / var(--cols)),
+      calc((100dvh - 34rem) / var(--rows) - var(--gap))
+    )
+  );
+  margin-top: 0.6rem;
+}
+
+body.theme-doanchu .tile {
+  border: 1.5px solid var(--tile-border);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #38383e 0%, #1c1c20 100%);
+  color: #fff;
+  font-weight: 900;
+  box-shadow:
+    0 3px 6px rgb(0 0 0 / 45%),
+    inset 0 1px 0 rgb(255 255 255 / 10%),
+    inset 0 0 12px rgb(255 190 40 / 8%);
+}
+
+body.theme-doanchu .tile.filled {
+  border-color: var(--tile-filled-border);
+  box-shadow:
+    0 0 0 1px rgb(255 210 74 / 45%),
+    0 0 16px rgb(246 178 27 / 45%),
+    0 3px 6px rgb(0 0 0 / 45%);
+}
+
+/* Ô sắp nhận chữ tiếp theo sáng nhịp nhàng */
+body.theme-doanchu .tile-active {
+  border-color: #fff3c4;
+  animation: dc-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dc-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(255 214 90 / 60%),
+      0 0 20px rgb(255 190 40 / 80%);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgb(255 214 90 / 22%),
+      0 0 8px rgb(255 190 40 / 30%);
+  }
+}
+
+body.theme-doanchu .tile.revealed {
+  border-color: rgb(255 255 255 / 35%);
+  text-shadow: 0 2px 3px rgb(0 0 0 / 40%);
+}
+
+body.theme-doanchu .tile-green {
+  background: linear-gradient(180deg, #4ee38a 0%, #16a34a 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 45%),
+    0 0 16px rgb(34 197 94 / 55%),
+    0 3px 6px rgb(0 0 0 / 40%);
+}
+
+body.theme-doanchu .tile-yellow {
+  background: linear-gradient(180deg, #ffcb47 0%, #e08a06 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 45%),
+    0 0 16px rgb(245 158 11 / 55%),
+    0 3px 6px rgb(0 0 0 / 40%);
+}
+
+body.theme-doanchu .tile-blue {
+  background: linear-gradient(180deg, #6aa6ff 0%, #2563eb 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 45%),
+    0 0 16px rgb(59 130 246 / 55%),
+    0 3px 6px rgb(0 0 0 / 40%);
+}
+
+body.theme-doanchu .tile-black {
+  border-color: rgb(255 255 255 / 12%);
+  background: linear-gradient(180deg, #46464c 0%, #232326 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 15%),
+    0 3px 6px rgb(0 0 0 / 40%);
+}
+
+body.theme-doanchu .tile-mini {
+  border-radius: 7px;
+}
+
+body.theme-doanchu .tile-outline {
+  border: 1.5px solid var(--tile-border);
+  background: linear-gradient(180deg, #38383e 0%, #1c1c20 100%);
+  color: #fff;
+}
+
+body.theme-doanchu .notice {
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 45%);
+}
+
+/* ----- Ô nhập ----- */
+body.theme-doanchu .guess-form {
+  max-width: 560px;
+  padding: 0.8rem;
+  border-radius: 18px;
+  background: rgb(0 0 0 / 26%);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 214 90 / 18%),
+    0 8px 20px rgb(0 0 0 / 22%);
+}
+
+body.theme-doanchu .guess-input {
+  border: 2px solid var(--tile-border);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 42%);
+  color: #fff;
+  font-weight: 800;
+}
+
+body.theme-doanchu .guess-input:focus {
+  border-color: #ffd24a;
+  box-shadow:
+    0 0 0 3px rgb(255 210 74 / 32%),
+    0 0 18px rgb(255 190 40 / 35%);
+}
+
+body.theme-doanchu .guess-hint-full {
+  color: #7dffa9;
+}
+
+body.theme-doanchu .guess-hint-over {
+  color: #ffd9d9;
+}
+
+/* ----- Bàn phím ảo (đang tắt, giữ sẵn giao diện cùng chủ đề) ----- */
+body.theme-doanchu .key {
+  background: linear-gradient(180deg, #3b3b40 0%, #25252a 100%);
+  color: #fff;
+  box-shadow: 0 3px 0 #111;
+}
+
+body.theme-doanchu .key-wide {
+  background: linear-gradient(180deg, #ffd24a 0%, #f0a30f 100%);
+  color: var(--primary-text);
+  box-shadow: 0 3px 0 #a86a00;
+}
+
+/* ----- Kết quả: bật lên và phát sáng khi thắng ----- */
+body.theme-doanchu .result {
+  max-width: 560px;
+  border: 2px solid #d4a017;
+  background: linear-gradient(180deg, #5b1114 0%, #3c0a0c 100%);
+  color: #fff;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
+  animation: dc-pop 0.45s ease-out both;
+}
+
+body.theme-doanchu .result-won {
+  border-color: #ffd24a;
+  animation:
+    dc-pop 0.45s ease-out both,
+    dc-glow 2.4s ease-in-out 0.45s infinite;
+}
+
+body.theme-doanchu .result-lost {
+  border-color: #8a8a90;
+}
+
+body.theme-doanchu .result h2 {
+  justify-content: center;
+  color: #ffd24a;
+  font-size: 1.6rem;
+  text-shadow: 0 2px 8px rgb(255 190 40 / 45%);
+}
+
+body.theme-doanchu .definition {
+  background: rgb(0 0 0 / 30%);
+}
+
+body.theme-doanchu .definition-word {
+  color: #ffd24a;
+}
+
+@keyframes dc-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dc-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px rgb(255 210 74 / 28%),
+      0 0 30px rgb(255 190 40 / 45%),
+      0 14px 34px rgb(0 0 0 / 45%);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgb(255 210 74 / 12%),
+      0 0 14px rgb(255 190 40 / 22%),
+      0 14px 34px rgb(0 0 0 / 45%);
+  }
+}
+
+/* ----- Luật chơi (vẫn là khung bên phải, thu gọn được trên điện thoại) ----- */
+body.theme-doanchu .rules.card {
+  border: 1px solid rgb(255 214 90 / 28%);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgb(0 0 0 / 30%) 0%, rgb(0 0 0 / 16%) 100%);
+  box-shadow: 0 14px 32px rgb(0 0 0 / 28%);
+}
+
+body.theme-doanchu .rules h2 {
+  color: #ffd24a;
+}
+
+body.theme-doanchu .rules-list strong {
+  color: #fff;
+}
+
+/* ----- Điện thoại ----- */
+@media (max-width: 480px) {
+  body.theme-doanchu .game {
+    padding: 0.9rem 0.55rem 1.1rem;
+    border-radius: 20px;
+  }
+}

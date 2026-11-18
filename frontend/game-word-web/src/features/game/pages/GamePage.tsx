@@ -8,14 +8,17 @@ import GameRules from '../components/GameRules';
 import GuessInput from '../components/GuessInput';
 import GameResult from '../components/GameResult';
 import { useGame } from '../hooks/useGame';
+import { useDoanChuTheme } from '../hooks/useDoanChuTheme';
 import { usePhysicalKeyboard } from '../hooks/usePhysicalKeyboard';
 import { formatGuess } from '../utils/gameState';
 
-const DEFAULT_MAX_ATTEMPTS = 10;
+const DEFAULT_MAX_ATTEMPTS = 6;
 // Tạm ẩn bàn phím ảo; người chơi gõ qua ô nhập/bàn phím thật. Đặt true để hiện lại.
 const SHOW_VIRTUAL_KEYBOARD = false;
 
 export default function GamePage() {
+  // Nền đỏ và bộ màu nổi bật của game; chỉ áp dụng khi trang này đang mở
+  useDoanChuTheme();
   const { user } = useAuth();
   const { state, newGame, retry, submit, typeLetter, backspace, setInput } = useGame(user?.id ?? null);
   const [shake, setShake] = useState(false);
@@ -49,7 +52,9 @@ export default function GamePage() {
       <>
         <div className="game-head">
           <div>
-            <h1 id="game-title">Đoán từ ghép</h1>
+            <h1 id="game-title" className="dc-title">
+              Đoán từ ghép
+            </h1>
             <p className="muted">
               {state.partLengths.length} tiếng ({state.partLengths.join(' + ')} chữ) · còn {remaining}/{state.maxAttempts}{' '}
               lượt

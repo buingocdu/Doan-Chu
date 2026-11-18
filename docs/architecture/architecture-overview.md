@@ -113,10 +113,10 @@ sequenceDiagram
 
 | Tham số | Giá trị mặc định | Thuộc tính cấu hình |
 |---------|------------------|---------------------|
-| Số lượt tối đa | 10 | `game.guess.max-attempts` ⚠ |
-| Điểm tối thiểu / tối đa | 10 / 100 | `game.score.min` / `game.score.max` ⚠ |
+| Số lượt tối đa | 6 | `game.max-attempts` (biến môi trường `GAME_MAX_ATTEMPTS`) |
+| Điểm tối thiểu / tối đa | 10 / 100 | `game.score-min` / `game.score-max` |
 
-⚠ `GameConfig` bind với prefix `game` và các field `maxAttempts`, `scoreMin`, `scoreMax`, tức khóa hợp lệ là `game.max-attempts`, `game.score-min`, `game.score-max`. Các khóa trong `application*.properties` **không khớp**, nên giá trị đang dùng là mặc định trong code (R-06).
+`GameConfig` bind với prefix `game` và các field `maxAttempts`, `scoreMin`, `scoreMax`, tức khóa hợp lệ là `game.max-attempts`, `game.score-min`, `game.score-max`. Trước đây các khóa trong `application*.properties` (`game.guess.max-attempts`, `game.score.min`, `game.score.max`) **không khớp** nên bị bỏ qua và giá trị thật lấy từ mặc định trong code (R-06). Đã sửa khóa cho khớp; `GameConfigBindingTest` kiểm tra hai file cấu hình bind được vào `GameConfig`. Điểm giảm đều từ 100 ở lượt 1 xuống 10 ở lượt cuối (6 lượt: 100, 82, 64, 46, 28, 10). Đua đoán chữ riêng trong phòng cũng dùng số lượt này; chế độ lần lượt chung dùng `room.turn-max-attempts` (20).
 
 Màu phản hồi (`GameService.evaluateGuess`):
 

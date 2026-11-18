@@ -6,7 +6,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "game")
 public class GameConfig {
-    private Integer maxAttempts = 10;
+    // So luot doan toi da (game.max-attempts); diem giam deu tu scoreMax o luot 1 xuong scoreMin o luot cuoi
+    private Integer maxAttempts = 6;
     private Integer scoreMin = 10;
     private Integer scoreMax = 100;
 

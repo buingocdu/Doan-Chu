@@ -164,4 +164,26 @@ describe('GamePage', () => {
     await user.click(screen.getByRole('button', { name: 'Thử lại' }));
     expect(await screen.findByRole('grid')).toBeInTheDocument();
   });
+
+  it('áp dụng nền đỏ nổi bật khi trang mở và gỡ ra khi rời trang; luật chơi và các chức năng cũ vẫn còn', async () => {
+    const { unmount } = renderPage();
+    await screen.findByRole('grid');
+    expect(document.body.classList.contains('theme-doanchu')).toBe(true);
+    // Giữ nguyên bố cục cũ: tiêu đề, nút Từ khác, khung Luật chơi luôn hiện
+    expect(screen.getByRole('heading', { level: 1, name: 'Đoán từ ghép' })).toHaveClass('dc-title');
+    expect(screen.getByRole('button', { name: /Đổi từ khác/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Luật chơi' })).toBeInTheDocument();
+    unmount();
+    expect(document.body.classList.contains('theme-doanchu')).toBe(false);
+  });
+
+  it('ô tiếp theo của hàng đang nhập được đánh dấu để sáng lên', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const input = await screen.findByLabelText(/Nhập từ đoán/);
+    const firstRow = () => screen.getAllByRole('row')[0];
+    expect(firstRow().querySelector('.tile-active')).toBe(firstRow().querySelectorAll('.tile')[0]);
+    await user.type(input, 'm');
+    expect(firstRow().querySelector('.tile-active')).toBe(firstRow().querySelectorAll('.tile')[1]);
+  });
 });

@@ -137,7 +137,7 @@ Response 200 (`GuessResponse`):
 
 ```json
 {
-  "gameId": 12, "wordId": 3, "wordLength": 7, "partLengths": [4, 3], "guess": "", "attempt": 0, "maxAttempts": 10,
+  "gameId": 12, "wordId": 3, "wordLength": 7, "partLengths": [4, 3], "guess": "", "attempt": 0, "maxAttempts": 6,
   "correct": false, "gameOver": false, "cells": [], "score": null,
   "message": "Bat dau choi. Ban co 10 lan doan.", "answer": null
 }
@@ -158,7 +158,7 @@ Response 200 (`GameStateResponse`):
 
 ```json
 {
-  "gameId": 224, "wordId": 1532, "wordLength": 7, "partLengths": [4, 3], "maxAttempts": 10, "attempt": 2,
+  "gameId": 224, "wordId": 1532, "wordLength": 7, "partLengths": [4, 3], "maxAttempts": 6, "attempt": 2,
   "rows": [
     [ { "index": 0, "letter": "A", "color": "BLACK", "label": "den" } ],
     [ { "index": 0, "letter": "O", "color": "YELLOW", "label": "vang" } ]
@@ -183,7 +183,7 @@ Request (`GuessRequest`):
 
 ```json
 {
-  "gameId": 12, "wordId": 3, "wordLength": 7, "guess": "LANHDAU", "attempt": 2, "maxAttempts": 10,
+  "gameId": 12, "wordId": 3, "wordLength": 7, "guess": "LANHDAU", "attempt": 2, "maxAttempts": 6,
   "correct": true, "gameOver": true,
   "cells": [ { "index": 0, "letter": "L", "color": "GREEN", "label": "xanh la" } ],
   "score": 91,
@@ -290,3 +290,4 @@ Lỗi phát sinh trong filter bảo mật (ví dụ token sai/hết hạn) khôn
 | 0.6 | 2026-11-17 | Ghép hình: `GET /api/puzzle/games` và `/api/puzzle/leaderboard` công khai, chơi không cần đăng nhập |
 | 0.7 | 2026-11-17 | Ghép hình: đọc cờ xoay EXIF khi upload; `rotate`, `edit` (xoay + cắt, lưu bản sao); ETag cho ảnh |
 | 0.8 | 2026-11-18 | Ghép hình: `snapPercent` cho từng game (mặc định 8, 2–20); điện thoại tự cộng 20%; cụm mảnh |
+| 0.9 | 2026-11-18 | Đoán chữ: số lượt tối đa mặc định 6 (`game.max-attempts`); sửa khóa cấu hình bị bỏ qua |

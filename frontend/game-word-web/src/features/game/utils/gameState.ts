@@ -186,3 +186,17 @@ export const COLOR_LABELS: Record<CellColor, string> = {
   YELLOW: 'có trong từ nhưng sai vị trí',
   BLACK: 'không có trong từ',
 };
+
+export const SCORE_MAX = 100;
+export const SCORE_MIN = 10;
+
+/**
+ * Điểm khi đoán đúng ở lượt `attempt`: giảm đều từ SCORE_MAX (lượt 1) xuống SCORE_MIN (lượt cuối). Cùng công thức với
+ * GameService.computeScore ở backend (nơi tính điểm thật); frontend chỉ dùng để giải thích luật chơi.
+ */
+export function scoreForAttempt(attempt: number, maxAttempts: number): number {
+  if (maxAttempts <= 1) return SCORE_MAX;
+  const step = (SCORE_MAX - SCORE_MIN) / (maxAttempts - 1);
+  const score = Math.round(SCORE_MAX - (attempt - 1) * step);
+  return Math.max(SCORE_MIN, Math.min(SCORE_MAX, score));
+}

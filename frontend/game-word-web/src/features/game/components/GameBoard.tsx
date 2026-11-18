@@ -58,8 +58,15 @@ export default function GameBoard({
       );
     }
     const letter = rowIndex === rows.length ? current[col] ?? '' : '';
+    // Ô sẽ nhận chữ tiếp theo của hàng đang nhập (chủ đề giao diện làm nó sáng lên)
+    const active = rowIndex === rows.length && !letter && col === current.length;
     return (
-      <div key={col} role="gridcell" className={`tile${letter ? ' filled' : ''}`} aria-label={letter || 'trống'}>
+      <div
+        key={col}
+        role="gridcell"
+        className={`tile${letter ? ' filled' : ''}${active ? ' tile-active' : ''}`}
+        aria-label={letter || 'trống'}
+      >
         {letter}
       </div>
     );

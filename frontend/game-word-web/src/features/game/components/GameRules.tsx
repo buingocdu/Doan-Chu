@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CellColor } from '../../../types/api';
-import { COLOR_LABELS } from '../utils/gameState';
+import { COLOR_LABELS, SCORE_MAX, SCORE_MIN, scoreForAttempt } from '../utils/gameState';
 
 const ORDER: CellColor[] = ['GREEN', 'BLUE', 'YELLOW', 'BLACK'];
 const NAMES: Record<CellColor, string> = { GREEN: 'Xanh lá', YELLOW: 'Vàng', BLUE: 'Xanh dương', BLACK: 'Xám' };
@@ -99,8 +99,9 @@ export default function GameRules({ maxAttempts }: GameRulesProps) {
         </li>
         <li>
           Thắng khi tất cả các ô đều xanh lá (đúng cả dấu). Điểm tính theo lượt đoán đúng: lần 1 được{' '}
-          <strong>100 điểm</strong>, lần 2 được 90, mỗi lượt sau giảm 10 điểm (lần 10 còn 10 điểm). Đăng nhập để được cộng
-          điểm và lên bảng xếp hạng.
+          <strong>{SCORE_MAX} điểm</strong>
+          {maxAttempts > 2 && <>, lần 2 được {scoreForAttempt(2, maxAttempts)}</>}, mỗi lượt sau giảm đều (lần {maxAttempts}{' '}
+          còn {SCORE_MIN} điểm). Đăng nhập để được cộng điểm và lên bảng xếp hạng.
         </li>
       </ol>
     </aside>

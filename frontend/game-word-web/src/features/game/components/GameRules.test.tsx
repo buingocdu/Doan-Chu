@@ -25,4 +25,20 @@ describe('GameRules', () => {
     render(<GameRules maxAttempts={10} />);
     expect(screen.getByText(/là các chữ cái khác nhau/)).toBeInTheDocument();
   });
+
+  it('giải thích cách tính điểm theo số lượt cấu hình (6 lượt: 100, 82, ... lần 6 còn 10)', () => {
+    render(<GameRules maxAttempts={6} />);
+    expect(screen.getByText(/Bạn có/).textContent).toContain('6 lượt');
+    const scoring = screen.getByText(/Điểm tính theo lượt đoán đúng/);
+    expect(scoring.textContent).toContain('100 điểm');
+    expect(scoring.textContent).toContain('lần 2 được 82');
+    expect(scoring.textContent).toContain('lần 6 còn 10 điểm');
+  });
+
+  it('10 lượt vẫn ra 100, 90 như cũ', () => {
+    render(<GameRules maxAttempts={10} />);
+    const scoring = screen.getByText(/Điểm tính theo lượt đoán đúng/);
+    expect(scoring.textContent).toContain('lần 2 được 90');
+    expect(scoring.textContent).toContain('lần 10 còn 10 điểm');
+  });
 });
