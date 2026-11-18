@@ -17,7 +17,7 @@ const DEFAULT_MAX_ATTEMPTS = 6;
 const SHOW_VIRTUAL_KEYBOARD = false;
 
 export default function GamePage() {
-  // Nền đỏ và bộ màu nổi bật của game; chỉ áp dụng khi trang này đang mở
+  // Nền chàm - vàng và bộ màu nổi bật của game; chỉ áp dụng khi trang này đang mở
   useDoanChuTheme();
   const { user } = useAuth();
   const { state, newGame, retry, submit, typeLetter, backspace, setInput } = useGame(user?.id ?? null);

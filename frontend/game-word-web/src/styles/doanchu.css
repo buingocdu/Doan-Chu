@@ -1,19 +1,27 @@
-/* ===== Giao diện nổi bật cho game Đoán Chữ (tham khảo doanchu.vn: nền đỏ đậm, ô chữ nền than viền vàng) =====
+/* ===== Giao diện nổi bật cho game Đoán Chữ: phong cách "Đêm chàm – vàng" (nền tím chàm đậm, điểm nhấn vàng, ô chữ nền than viền vàng) =====
    Chỉ đổi cách trình bày, mọi thành phần và chức năng giữ nguyên. Chỉ áp dụng khi <body> có class theme-doanchu
    (useDoanChuTheme bật khi trang Đoán chữ mở). Đổi bộ biến màu của body nên thanh điều hướng và các nút dùng chung
    tự đổi theo mà không cần sửa từng thành phần. */
 
 body.theme-doanchu {
   color-scheme: dark;
-  --bg: #9d2527;
-  --surface: #7d1b1e;
-  --surface-2: #671517;
+  /* Bảng màu riêng của phong cách: đổi các biến --dc-* là đổi cả tông giao diện */
+  --dc-bg-top: #3b2e92;
+  --dc-bg-mid: #201858;
+  --dc-bg-bottom: #120d36;
+  --dc-glow: rgb(150 130 255 / 28%);
+  --dc-ink: #120b33;
+  --dc-card-top: #2e2373;
+  --dc-card-bottom: #1a1349;
+  --bg: #201858;
+  --surface: #2a2070;
+  --surface-2: #1c1552;
   --border: rgb(255 255 255 / 18%);
   --text: #fff;
-  --text-muted: #f4cfcf;
+  --text-muted: #d4cffa;
   --primary: #f6b21b;
   --primary-hover: #ffc83d;
-  --primary-text: #52090c;
+  --primary-text: #1d1240;
   --danger: #ffd9d9;
   --danger-bg: rgb(0 0 0 / 30%);
   --focus: #ffe08a;
@@ -28,11 +36,11 @@ body.theme-doanchu {
   --gray: #2b2b2e;
   --on-color: #fff;
   --shadow: 0 2px 6px rgb(0 0 0 / 25%), 0 10px 28px rgb(0 0 0 / 28%);
-  /* Nền đỏ có vầng sáng ở giữa phía trên để bớt phẳng */
+  /* Nền chàm có vầng sáng ở giữa phía trên để bớt phẳng */
   background:
-    radial-gradient(60% 40% at 50% 12%, rgb(255 196 90 / 22%) 0%, transparent 70%),
-    radial-gradient(120% 80% at 50% -10%, #c43a38 0%, #9d2527 48%, #7d171a 100%),
-    #9d2527;
+    radial-gradient(60% 40% at 50% 12%, var(--dc-glow) 0%, transparent 70%),
+    radial-gradient(120% 80% at 50% -10%, var(--dc-bg-top) 0%, var(--dc-bg-mid) 48%, var(--dc-bg-bottom) 100%),
+    var(--dc-bg-mid);
   background-attachment: fixed;
 }
 
@@ -126,8 +134,8 @@ body.theme-doanchu .game-head {
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
-  filter: drop-shadow(1.5px 0 0 #4a0709) drop-shadow(-1.5px 0 0 #4a0709) drop-shadow(0 1.5px 0 #4a0709)
-    drop-shadow(0 -1.5px 0 #4a0709) drop-shadow(0 4px 0 #4a0709) drop-shadow(0 9px 10px rgb(0 0 0 / 35%));
+  filter: drop-shadow(1.5px 0 0 var(--dc-ink)) drop-shadow(-1.5px 0 0 var(--dc-ink)) drop-shadow(0 1.5px 0 var(--dc-ink))
+    drop-shadow(0 -1.5px 0 var(--dc-ink)) drop-shadow(0 4px 0 var(--dc-ink)) drop-shadow(0 9px 10px rgb(0 0 0 / 35%));
   animation: dc-shine 5s linear infinite;
 }
 
@@ -315,7 +323,7 @@ body.theme-doanchu .key-wide {
 body.theme-doanchu .result {
   max-width: 560px;
   border: 2px solid #d4a017;
-  background: linear-gradient(180deg, #5b1114 0%, #3c0a0c 100%);
+  background: linear-gradient(180deg, var(--dc-card-top) 0%, var(--dc-card-bottom) 100%);
   color: #fff;
   box-shadow: 0 14px 34px rgb(0 0 0 / 45%);
   animation: dc-pop 0.45s ease-out both;
