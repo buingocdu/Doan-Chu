@@ -112,6 +112,15 @@ export default function PuzzlePage() {
           <Trophy size={24} aria-hidden="true" /> Hoàn thành!
         </h1>
         <div className="card puzzle-result" role="status">
+          <figure className="puzzle-result-figure">
+            <img
+              className="puzzle-result-image"
+              src={puzzleImageUrl(game.imageId, game.imageVersion)}
+              alt={`Ảnh đã ghép: ${game.title}`}
+              style={game.width && game.height ? { aspectRatio: `${game.width} / ${game.height}` } : undefined}
+              draggable={false}
+            />
+          </figure>
           <p className="puzzle-result-time">{formatDuration(result.durationMs, true)}</p>
           <p className="muted">
             {game.title} · {game.rows}×{game.cols} ({game.rows * game.cols} mảnh) · {result.moves} lượt kéo
